@@ -1,16 +1,12 @@
-import { Constants, TokenType } from "./constants"
+import { TokenType } from "./constants"
 
-class Token {
+export class Token {
     type: TokenType;
-    value: string;
-    literal: object;
-    line: number;
+    value: number | string;
 
-    constructor(type: TokenType, value: string, literal: object, line: number) {
+    constructor(type: TokenType, value: number | string) {
         this.type = type;
         this.value = value;
-        this.literal = literal;
-        this.line = line;
     }
 
     stringify(): string {
