@@ -1,9 +1,9 @@
 import { Lexer } from "./lexer"
+import { Token } from "./token"
 
-export function run(text: string): string {
-    let lexer = new Lexer(text);
+export function run(text: string, fname: string): Token[] {
+    let lexer = new Lexer(text, fname);
     let tokens = lexer.genTokens();
-    console.log(tokens);
     
-    return text;
+    return tokens;
 }
