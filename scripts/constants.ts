@@ -14,7 +14,8 @@ export let Constants = {
     LSless: "LESS",
     LSlessequal: "LESSEQUAL",
     LSgreater: "GREATER",
-    LSgreaterequal: "GREATEREQUAL"
+    LSgreaterequal: "GREATEREQUAL",
+    LSstring: "STRING"
 } as const;
 
 export type TokenType = typeof Constants[keyof typeof Constants];

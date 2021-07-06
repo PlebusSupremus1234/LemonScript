@@ -1,13 +1,15 @@
 import { Constants, TokenType } from "./constants"
+import { Errors, IllegalCharacter, UnterminatedString } from "./errors"
 import { Token } from "./token"
 
 const { LSint, LSfloat, LSplus, LSminus, LSmul, LSdiv, LSlparen, LSrparen, LSbang, LSbangequal, LSequal, LSequalequal, LSless, LSlessequal, LSgreater,
-    LSgreaterequal } = Constants;
+    LSgreaterequal, LSstring } = Constants;
 
 export class Lexer {
     text: string;
     pos = 0;
     line = 1;
+    rowpos = 0;
     filename: string;
     currentChar: string;
     tokens: Token[] = [];
@@ -20,12 +22,17 @@ export class Lexer {
 
     advance() {
         this.pos++;
+        this.rowpos++;
         this.currentChar = this.text[this.pos];
-        if (this.currentChar === "\n") this.line++;
+        if (this.currentChar === "\n") {
+            this.line++;
+            this.rowpos = -1;
+            this.advance();
+        }
     }
 
-    addToken(type: TokenType) {
-        this.tokens.push(new Token(type, this.currentChar));
+    addToken(type: TokenType, value=this.currentChar) {
+        this.tokens.push(new Token(type, value));
         this.advance();
     }
 
@@ -34,7 +41,7 @@ export class Lexer {
         return this.currentChar === expected;
     }
 
-    genTokens(): Token[] {
+    genTokens(): [Token[], null | Errors] {
         while (this.currentChar) {
             if (" \t".includes(this.currentChar)) this.advance();
             else if ("0123456789".includes(this.currentChar)) this.manageNumber();
@@ -50,14 +57,18 @@ export class Lexer {
             else if (this.currentChar === ">") this.addToken(this.peek("=") ? LSgreaterequal : LSgreater);
             else if (this.currentChar === "#") {
                 while (this.text[this.pos] !== "\n" && this.pos < this.text.length) this.advance();
-            }
-            else {
-                console.log(`Illegal Char (Line ${this.line}): ${this.currentChar}`);
+            } else if (this.currentChar === '"') {
+                let start = this.pos + 1;
+                let rowstart = this.rowpos;
+                while (this.text[this.pos + 1] !== '"' && this.pos < this.text.length) this.advance();
+                if (this.pos >= this.text.length) return [[], new UnterminatedString(this.filename, this.line, rowstart, this.text.split("\n")[this.line - 1])];
                 this.advance();
+                this.addToken(LSstring, this.text.substring(start, this.pos));    
             }
+            else return [[], new IllegalCharacter(this.filename, this.line, this.rowpos, this.text.split("\n")[this.line - 1], this.currentChar)];
         }
 
-        return this.tokens;
+        return [this.tokens, null];
     }
 
     manageNumber() {
