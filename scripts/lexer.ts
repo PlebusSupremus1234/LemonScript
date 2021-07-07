@@ -28,8 +28,8 @@ export class Lexer {
         }
     }
 
-    addToken(type: TokenType, value=this.currentChar) {
-        this.tokens.push(new Token(type, value));
+    addToken(type: TokenType, value: number | string=this.currentChar) {
+        this.tokens.push(new Token(type, value, this.rowpos, this.line));
         this.advance();
     }
 
@@ -57,6 +57,8 @@ export class Lexer {
             else if (this.currentChar === "/") this.addToken("DIV");
             else if (this.currentChar === "(") this.addToken("LPAREN");
             else if (this.currentChar === ")") this.addToken("RPAREN");
+            else if (this.currentChar === "{") this.addToken("LBRACE");
+            else if (this.currentChar === "}") this.addToken("RBRACE");
             else if (this.currentChar === "!") this.addToken(this.next("=") ? "BANGEQUAL" : "BANG");
             else if (this.currentChar === "=") this.addToken(this.next("=") ? "EQUAlEQUAL" : "EQUAL");
             else if (this.currentChar === "<") this.addToken(this.next("=") ? "LESSEQUAL" : "LESS");
@@ -96,7 +98,7 @@ export class Lexer {
             this.advance();
         }
 
-        if (count === 0) this.tokens.push(new Token("INT", parseInt(nums)));
-        else this.tokens.push(new Token("FLOAT", parseFloat(nums)));
+        if (count === 0) this.addToken("INT", parseInt(nums));
+        else this.addToken("FLOAT", parseFloat(nums));
     }
 }

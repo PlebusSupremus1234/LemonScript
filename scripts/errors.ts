@@ -27,7 +27,7 @@ class LSError {
     }
 }
 
-export type Errors = IllegalCharacter | UnterminatedString;
+export type Errors = IllegalCharacter | UnterminatedString | SyntaxError;
 
 export class IllegalCharacter extends LSError {
     constructor(fname: string, line: number, pos: number, linetext: string, char: string) {
@@ -38,5 +38,11 @@ export class IllegalCharacter extends LSError {
 export class UnterminatedString extends LSError {
     constructor(fname: string, line: number, pos: number, linetext: string) {
         super("Unterminated String", `String on line ${line} has no ending`, fname, line, pos, linetext);
+    }
+}
+
+export class SyntaxError extends LSError {
+    constructor(fname: string, text: string, line: number, pos: number, linetext: string) {
+        super("Syntax Error", text, fname, line, pos, linetext);
     }
 }
