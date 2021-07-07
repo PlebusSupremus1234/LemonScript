@@ -1,6 +1,6 @@
 import { Errors, IllegalCharacter, UnterminatedString } from "./errors"
 import { Keywords, TokenType } from "./constants"
-import { Token } from "./token"
+import { Token, TokenValue } from "./token"
 
 export class Lexer {
     text: string;
@@ -28,7 +28,7 @@ export class Lexer {
         }
     }
 
-    addToken(type: TokenType, value: number | string=this.currentChar) {
+    addToken(type: TokenType, value: TokenValue=this.currentChar) {
         this.tokens.push(new Token(type, value, this.rowpos, this.line));
         this.advance();
     }
@@ -82,6 +82,7 @@ export class Lexer {
             else return [[], new IllegalCharacter(this.filename, this.line, this.rowpos + 1, this.text.split("\n")[this.line - 1], this.currentChar)];
         }
 
+        this.addToken("EOF", null);
         return [this.tokens, null];
     }
 

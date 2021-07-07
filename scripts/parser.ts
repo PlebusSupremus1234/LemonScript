@@ -22,16 +22,17 @@ export class Parser {
         try {
             return this.expression();
         } catch(e) {
+            console.log(e);
             return null;
         }
     }
 
-    expression(): LSNode {
+    expression(): LSNode | Errors {
         return this.equality();
     }
 
-    equality(): LSNode {
-        let expr = this.expression();
+    equality(): LSNode | Errors {
+        let expr = this.comparison();
 
         while (this.match(["BANGEQUAL", "EQUALEQUAL"])) {
             let operator = this.tokens[this.pos - 1];
@@ -102,7 +103,9 @@ export class Parser {
         }
 
         let prev = this.tokens[this.pos - 1];
-        return new SyntaxError(this.fname, `Expected an expression on line ${prev.line}`, prev.line, prev.rowpos, this.text.split("\n")[prev.line - 1]);
+        let l = prev ? prev.line : 1;
+        let txt = `Expected an expression on line ${l}`;
+        return new SyntaxError(this.fname, txt, l, prev ? prev.rowpos : 1, this.text.split("\n")[l - 1]);
     }
 
     match(types: TokenType[]=[]): boolean {

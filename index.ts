@@ -20,6 +20,7 @@ function input() {
         } else inp = [text, "<stdin>"];
         if (inp) {
             let res = run(inp[0], inp[1]);
+            console.log(res)
             if (res.err) {
                 console.log(res.errormsg);
             } else {
