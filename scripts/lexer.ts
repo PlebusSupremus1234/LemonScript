@@ -1,9 +1,6 @@
-import { Constants, TokenType } from "./constants"
 import { Errors, IllegalCharacter, UnterminatedString } from "./errors"
+import { Keywords, TokenType } from "./constants"
 import { Token } from "./token"
-
-const { LSint, LSfloat, LSplus, LSminus, LSmul, LSdiv, LSlparen, LSrparen, LSbang, LSbangequal, LSequal, LSequalequal, LSless, LSlessequal, LSgreater,
-    LSgreaterequal, LSstring } = Constants;
 
 export class Lexer {
     text: string;
@@ -36,36 +33,51 @@ export class Lexer {
         this.advance();
     }
 
-    peek(expected: string): boolean {
+    peek(): string {
+        return this.text[this.pos + 1];
+    }
+
+    next(expected: string): boolean {
         this.advance();
         return this.currentChar === expected;
+    }
+
+    isAlpha(text: string): boolean {
+        if (!text) return false;
+        return text.match(/^[A-Za-z]+$/) !== null;
     }
 
     genTokens(): [Token[], null | Errors] {
         while (this.currentChar) {
             if (" \t".includes(this.currentChar)) this.advance();
             else if ("0123456789".includes(this.currentChar)) this.manageNumber();
-            else if (this.currentChar === "+") this.addToken(LSplus);
-            else if (this.currentChar === "-") this.addToken(LSminus);
-            else if (this.currentChar === "*") this.addToken(LSmul);
-            else if (this.currentChar === "/") this.addToken(LSdiv);
-            else if (this.currentChar === "(") this.addToken(LSlparen);
-            else if (this.currentChar === ")") this.addToken(LSrparen);
-            else if (this.currentChar === "!") this.addToken(this.peek("=") ? LSbangequal : LSbang);
-            else if (this.currentChar === "=") this.addToken(this.peek("=") ? LSequalequal : LSequal);
-            else if (this.currentChar === "<") this.addToken(this.peek("=") ? LSlessequal : LSless);
-            else if (this.currentChar === ">") this.addToken(this.peek("=") ? LSgreaterequal : LSgreater);
+            else if (this.currentChar === "+") this.addToken("PLUS");
+            else if (this.currentChar === "-") this.addToken("MINUS");
+            else if (this.currentChar === "*") this.addToken("MUL");
+            else if (this.currentChar === "/") this.addToken("DIV");
+            else if (this.currentChar === "(") this.addToken("LPAREN");
+            else if (this.currentChar === ")") this.addToken("RPAREN");
+            else if (this.currentChar === "!") this.addToken(this.next("=") ? "BANGEQUAL" : "BANG");
+            else if (this.currentChar === "=") this.addToken(this.next("=") ? "EQUAlEQUAL" : "EQUAL");
+            else if (this.currentChar === "<") this.addToken(this.next("=") ? "LESSEQUAL" : "LESS");
+            else if (this.currentChar === ">") this.addToken(this.next("=") ? "GREATEREQUAL" : "GREATER");
             else if (this.currentChar === "#") {
                 while (this.text[this.pos] !== "\n" && this.pos < this.text.length) this.advance();
+            } else if (this.isAlpha(this.currentChar) || this.currentChar === "_") {
+                let start = this.pos;
+                while (this.isAlpha(this.peek()) || "0123456789".includes(this.peek())) this.advance();
+                let text = this.text.substring(start, this.pos + 1);
+                if (Keywords.map(i => i.toLowerCase()).includes(text)) this.addToken(text.toUpperCase(), text);
+                else this.addToken("IDENTIFIER", text);
             } else if (this.currentChar === '"') {
                 let start = this.pos + 1;
                 let rowstart = this.rowpos;
-                while (this.text[this.pos + 1] !== '"' && this.pos < this.text.length) this.advance();
-                if (this.pos >= this.text.length) return [[], new UnterminatedString(this.filename, this.line, rowstart, this.text.split("\n")[this.line - 1])];
+                while (this.peek() !== '"' && this.pos < this.text.length) this.advance();
+                if (this.pos >= this.text.length) return [[], new UnterminatedString(this.filename, this.line, rowstart + 1, this.text.split("\n")[this.line - 1])];
                 this.advance();
-                this.addToken(LSstring, this.text.substring(start, this.pos));    
+                this.addToken("STRING", this.text.substring(start, this.pos));    
             }
-            else return [[], new IllegalCharacter(this.filename, this.line, this.rowpos, this.text.split("\n")[this.line - 1], this.currentChar)];
+            else return [[], new IllegalCharacter(this.filename, this.line, this.rowpos + 1, this.text.split("\n")[this.line - 1], this.currentChar)];
         }
 
         return [this.tokens, null];
@@ -74,7 +86,7 @@ export class Lexer {
     manageNumber() {
         let nums = "";
         let count = 0;
-        
+
         while (this.currentChar !== null && "0123456789.".includes(this.currentChar)) {
             if (this.currentChar == ".") {
                 if (count === 1) break;
@@ -84,7 +96,7 @@ export class Lexer {
             this.advance();
         }
 
-        if (count === 0) this.tokens.push(new Token(LSint, parseInt(nums)));
-        else this.tokens.push(new Token(LSfloat, parseFloat(nums)));
+        if (count === 0) this.tokens.push(new Token("INT", parseInt(nums)));
+        else this.tokens.push(new Token("FLOAT", parseFloat(nums)));
     }
 }

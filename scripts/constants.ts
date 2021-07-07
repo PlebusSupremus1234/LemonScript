@@ -1,21 +1,10 @@
-export let Constants = {
-    LSint: "INT",
-    LSfloat: "FLOAT",
-    LSplus: "PLUS",
-    LSminus: "MINUS",
-    LSmul: "MUL",
-    LSdiv: "DIV",
-    LSlparen: "LPAREN",
-    LSrparen: "RPAREN",
-    LSbang: "BANG",
-    LSbangequal: "BANGEQUAL",
-    LSequal: "EQUAL",
-    LSequalequal: "EQUAlEQUAL",
-    LSless: "LESS",
-    LSlessequal: "LESSEQUAL",
-    LSgreater: "GREATER",
-    LSgreaterequal: "GREATEREQUAL",
-    LSstring: "STRING"
-} as const;
+const symbols = [
+    "PLUS", "MINUS", "MUL", "DIV", "LPAREN", "RPAREN",
+    "BANG", "BANGEQUAL", "EQUAL", "EQUAlEQUAL", "LESS", "LESSEQUAL", "GREATER", "GREATEREQUAL",
+];
+const types = ["INT", "FLOAT", "STRING", "INDENTIFIER"];
+const keywords = ["AND", "ELSE", "FALSE", "FOR", "FUNc", "IF", "OR", "PRINT", "RETURN", "TRUE", "VAR", "WHILE"];
+const tokentypes = [...symbols, ...types, ...keywords] as const;
 
-export type TokenType = typeof Constants[keyof typeof Constants];
+export type TokenType = typeof tokentypes[number];
+export let Keywords = keywords;

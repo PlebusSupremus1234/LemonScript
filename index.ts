@@ -4,8 +4,8 @@ import { run } from "./scripts/run"
 import { red, yellow, cyan } from "./scripts/helpers"
 const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
 
-console.log(yellow("LemonScript Language"));
-console.log(yellow("--------------------"));
+console.log(yellow("LemonScript"));
+console.log(yellow("-----------"));
 
 function input() {
     rl.question(cyan("-> "), text => {

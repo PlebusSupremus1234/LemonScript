@@ -1,4 +1,4 @@
-import { red, yellow, cyan, bright } from "./helpers"
+import { red, yellow, cyan, blue, bold } from "./helpers"
 
 class LSError {
     type: string;
@@ -18,9 +18,12 @@ class LSError {
     }
 
     stringify(): string {
-        let str = `${cyan(this.fname)}:${yellow(this.line.toString())}:${yellow(this.pos.toString())} - ${bright(red("Error"))}: ${this.type}\n${this.error}\n\n`;
-        str += `${this.line} | ${this.linetext}\n${Array(this.pos + this.line.toString().length + 3).fill(" ").join("")}^`;
-        return str;
+        let fileDisplay = `${cyan(this.fname)}:${yellow(this.line.toString())}:${yellow(this.pos.toString())}`;
+        let errorHeader = `${bold(`${red("error")}:`)} ${this.type}`;
+        let errorText = bold(blue(this.error));
+        let errorLine = `${bold(blue(`${this.line} |`))} ${this.linetext}`;
+        let caret = `${Array(this.pos + this.line.toString().length + 2).fill(" ").join("")}${bold(blue("^"))}`;
+        return `${fileDisplay} - ${errorHeader}\n${errorText}\n\n${errorLine}\n${caret}`;
     }
 }
 
