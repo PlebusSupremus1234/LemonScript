@@ -11,27 +11,27 @@ export class Parser {
     text: string;
     fname: string;
     pos = 0;
+    error: false | Errors;
 
     constructor(tokens: Token[], fname: string, text: string) {
         this.tokens = tokens;
         this.fname = fname;
         this.text = text;
+        this.error = false;
     }
 
-    parse() {
-        try {
-            return this.expression();
-        } catch(e) {
-            console.log(e);
-            return null;
-        }
+    parse(): [null | LSNode, null | Errors] {
+        let res;
+        try { res = this.expression(); }
+        catch(e) { res = null; }
+        return [res, this.error ? this.error : null];
     }
 
-    expression(): LSNode | Errors {
+    expression(): LSNode {
         return this.equality();
     }
 
-    equality(): LSNode | Errors {
+    equality(): LSNode {
         let expr = this.comparison();
 
         while (this.match(["BANGEQUAL", "EQUALEQUAL"])) {
@@ -42,7 +42,7 @@ export class Parser {
         return expr;
     }
 
-    comparison(): LSNode | Errors {
+    comparison(): LSNode {
         let expr = this.term();
 
         while (this.match(["GREATER", "GREATEREQUAL", "LESS", "LESSEQUAL"])) {
@@ -53,7 +53,7 @@ export class Parser {
         return expr;
     }
 
-    term(): LSNode | Errors {
+    term(): LSNode {
         let expr = this.factor();
 
         while (this.match(["MINUS", "PLUS"])) {
@@ -64,7 +64,7 @@ export class Parser {
         return expr;
     }
 
-    factor(): LSNode | Errors {
+    factor(): LSNode {
         let expr = this.unary();
 
         while (this.match(["DIV", "MUL"])) {
@@ -75,7 +75,7 @@ export class Parser {
         return expr;
     }
 
-    unary(): LSNode | Errors {
+    unary(): LSNode {
         if (this.match(["BANG", "MINUS"])) {
             let operator = this.tokens[this.pos - 1];
             let right = this.unary();
@@ -84,11 +84,11 @@ export class Parser {
         return this.primary();
     }
 
-    primary(): LSNode | Errors {
+    primary(): LSNode {
         if (this.match(["FALSE"])) return new Literal(false);
         if (this.match(["TRUE"])) return new Literal(true);
         if (this.match(["NULL"])) return new Literal(null);
-    
+        
         if (this.match(["INT", "FLOAT", "STRING"])) return new Literal(this.tokens[this.pos - 1].value);
 
         let lparenpos = this.pos;
@@ -97,7 +97,7 @@ export class Parser {
             if (this.check("RPAREN")) this.advance();
             else {
                 let p = this.tokens[lparenpos];
-                return new SyntaxError(this.fname, `Expected a ')' after expression on line ${p.line}`, p.line, p.rowpos, this.text.split("\n")[p.line - 1]);
+                this.error = new SyntaxError(this.fname, `Expected a ')' after expression on line ${p.line}`, p.line, p.rowpos, this.text.split("\n")[p.line - 1]);
             }
             return new Grouping(expr);
         }
@@ -105,7 +105,8 @@ export class Parser {
         let prev = this.tokens[this.pos - 1];
         let l = prev ? prev.line : 1;
         let txt = `Expected an expression on line ${l}`;
-        return new SyntaxError(this.fname, txt, l, prev ? prev.rowpos : 1, this.text.split("\n")[l - 1]);
+        this.error = new SyntaxError(this.fname, txt, l, prev ? prev.rowpos + 1 : 1, this.text.split("\n")[l - 1]);
+        return new Literal("Error");
     }
 
     match(types: TokenType[]=[]): boolean {

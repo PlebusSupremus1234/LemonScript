@@ -19,14 +19,9 @@ function input() {
             }
         } else inp = [text, "<stdin>"];
         if (inp) {
-            let res = run(inp[0], inp[1]);
-            console.log(res)
-            if (res.err) {
-                console.log(res.errormsg);
-            } else {
-                console.log(res.tokens);
-                console.log(res.node);
-            }
+            let [res, error] = run(inp[0], inp[1]);
+            if (error) console.log(error.stringify());
+            else console.log(res);
         }
 
         input();
