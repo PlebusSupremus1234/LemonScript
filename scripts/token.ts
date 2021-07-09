@@ -1,6 +1,6 @@
 import { TokenType } from "./constants"
 
-export type TokenValue = null | number | string;
+export type TokenValue = null | boolean | number | string;
 export class Token {
     type: TokenType;
     value: TokenValue;

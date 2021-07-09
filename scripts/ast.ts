@@ -1,6 +1,7 @@
-import { Token } from "./token";
+import { Token, TokenValue } from "./token";
 
 class Expr {}
+export type LSNode = Expr | Binary | Grouping | Literal | Unary;
 
 export class Binary extends Expr {
     left: Expr;
@@ -25,9 +26,9 @@ export class Grouping extends Expr {
 }
 
 export class Literal extends Expr {
-    value: number | string | boolean | null;
+    value: TokenValue;
 
-    constructor(value: number | string | boolean | null) {
+    constructor(value: TokenValue) {
         super();
         this.value = value;
     }

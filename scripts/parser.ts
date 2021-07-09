@@ -1,10 +1,8 @@
-import { Binary, Grouping, Literal, Unary } from "./ast"
+import { Binary, Grouping, Literal, Unary, LSNode } from "./ast"
 import { Errors } from "./errors"
 import { SyntaxError } from "./errors"
 import { Token } from "./token";
 import { TokenType } from "./constants";
-
-export type LSNode = Binary | Grouping | Literal | Unary;
 
 export class Parser {
     tokens: Token[];
@@ -105,7 +103,7 @@ export class Parser {
         let prev = this.tokens[this.pos - 1];
         let l = prev ? prev.line : 1;
         let txt = `Expected an expression on line ${l}`;
-        this.error = new SyntaxError(this.fname, txt, l, prev ? prev.rowpos + 1 : 1, this.text.split("\n")[l - 1]);
+        this.error = new SyntaxError(this.fname, txt, l, prev ? prev.rowpos : 1, this.text.split("\n")[l - 1]);
         return new Literal("Error");
     }
 

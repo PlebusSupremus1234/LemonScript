@@ -28,8 +28,8 @@ export class Lexer {
         }
     }
 
-    addToken(type: TokenType, value: TokenValue=this.currentChar) {
-        this.tokens.push(new Token(type, value, this.rowpos, this.line));
+    addToken(type: TokenType, value: TokenValue=this.currentChar, rowpos: number=this.rowpos) {
+        this.tokens.push(new Token(type, value, rowpos, this.line));
         this.advance();
     }
 
@@ -76,19 +76,21 @@ export class Lexer {
                 while (this.peek() !== '"' && this.pos < this.text.length) this.advance();
                 if (this.pos >= this.text.length) return [[], new UnterminatedString(this.filename, this.line, rowstart + 1, this.text.split("\n")[this.line - 1])];
                 this.advance();
-                this.addToken("STRING", this.text.substring(start, this.pos));    
+                this.addToken("STRING", this.text.substring(start, this.pos), start);    
             } else if ("0123456789".includes(this.currentChar)) { // Number
-                let start = this.pos;
+                let start = this.pos;   
                 let f = false;
-                while ("0123456789".includes(this.peek())) this.advance();
-                
-                if (this.peek() === "." && "0123456789".includes(this.text[this.pos + 2])) {
-                    this.advance();
-                    f = true;
-                    while ("0123456789".includes(this.peek())) this.advance();
+
+                while ("0123456789".includes(this.peek())) this.advance();                
+                if (this.peek() === ".") {
+                    if ("0123456789".includes(this.text[this.pos + 2])) {
+                        this.advance();
+                        f = true;
+                        while ("0123456789".includes(this.peek())) this.advance();
+                    } else return [[], new IllegalCharacter(this.filename, this.line, this.rowpos + 3, this.text.split("\n")[this.line - 1], this.currentChar)];
                 }
 
-                this.addToken(f ? "FLOAT" : "INT", this.text.substring(start, this.pos + 1));
+                this.addToken(f ? "FLOAT" : "INT", parseFloat(this.text.substring(start, this.pos + 1)));
             } else return [[], new IllegalCharacter(this.filename, this.line, this.rowpos + 1, this.text.split("\n")[this.line - 1], this.currentChar)];
         }
 

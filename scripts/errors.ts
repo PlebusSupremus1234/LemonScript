@@ -27,7 +27,7 @@ class LSError {
     }
 }
 
-export type Errors = IllegalCharacter | UnterminatedString | SyntaxError;
+export type Errors = IllegalCharacter | UnterminatedString | SyntaxError | TypeError;
 
 export class IllegalCharacter extends LSError {
     constructor(fname: string, line: number, pos: number, linetext: string, char: string) {
@@ -44,5 +44,11 @@ export class UnterminatedString extends LSError {
 export class SyntaxError extends LSError {
     constructor(fname: string, text: string, line: number, pos: number, linetext: string) {
         super("Syntax Error", text, fname, line, pos, linetext);
+    }
+}
+
+export class TypeError extends LSError {
+    constructor(fname: string, text: string, line: number, pos: number, linetext: string) {
+        super("Type Error", text, fname, line, pos, linetext);
     }
 }

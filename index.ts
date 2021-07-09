@@ -18,6 +18,7 @@ function input() {
                 else inp = [readFileSync(file.trim()).toString(), file.trim()];
             }
         } else inp = [text, "<stdin>"];
+
         if (inp) {
             let [res, error] = run(inp[0], inp[1]);
             if (error) console.log(error.stringify());
