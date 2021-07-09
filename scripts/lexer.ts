@@ -1,6 +1,6 @@
-import { Errors, IllegalCharacter, UnterminatedString } from "./errors"
+import { Errors, IllegalCharacter, UnterminatedString } from "./structures/errors"
 import { Keywords, TokenType } from "./constants"
-import { Token, TokenValue } from "./token"
+import { Token, TokenValue } from "./structures/token"
 
 export class Lexer {
     text: string;

@@ -1,7 +1,6 @@
-import { Binary, Grouping, Literal, Unary, LSNode } from "./ast"
-import { Errors } from "./errors"
-import { SyntaxError } from "./errors"
-import { Token } from "./token";
+import { Binary, Grouping, Literal, Unary, LSNode } from "./trees/ast"
+import { Errors, SyntaxError } from "./structures/errors"
+import { Token } from "./structures/token";
 import { TokenType } from "./constants";
 
 export class Parser {

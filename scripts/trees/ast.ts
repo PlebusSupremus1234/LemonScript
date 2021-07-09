@@ -1,4 +1,4 @@
-import { Token, TokenValue } from "./token";
+import { Token, TokenValue } from "../structures/token";
 
 class Expr {}
 export type LSNode = Expr | Binary | Grouping | Literal | Unary;

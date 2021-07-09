@@ -1,7 +1,7 @@
 # LemonScript
 A programming language made with TypeScript.
 
-LemonScript is still in very heavy development, and is currently up to: Lexing Stage
+LemonScript is still in very heavy development, and is currently up to: Statement Expression Syntax Trees
 
 Here is a preview of how I would want LemonScript to be like:
 ```js

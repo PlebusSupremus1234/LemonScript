@@ -1,4 +1,4 @@
-import { TokenType } from "./constants"
+import { TokenType } from "../constants"
 
 export type TokenValue = null | boolean | number | string;
 export class Token {

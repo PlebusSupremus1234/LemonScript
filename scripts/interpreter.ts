@@ -1,7 +1,7 @@
 import { capitilizeFirstLetter } from "./helpers"
-import { Errors, TypeError } from "./errors"
-import { Grouping, Literal, Unary, LSNode, Binary } from "./ast";
-import { Token, TokenValue } from "./token";
+import { Errors, TypeError } from "./structures/errors"
+import { Grouping, Literal, Unary, LSNode, Binary } from "./trees/ast";
+import { Token, TokenValue } from "./structures/token";
 
 export class Interpreter {
     fname: string;
@@ -16,7 +16,7 @@ export class Interpreter {
         this.error = null;
     }
 
-    interpret(expr: LSNode): [any, null | Errors] {
+    interpret(expr: LSNode) {
         let res;
         try { res = this.visit(expr.constructor.name, expr); }
         catch(e) { res = null; }
@@ -40,7 +40,7 @@ export class Interpreter {
     visitUnaryExpr(expr: Unary) {
         let right = this.visit(expr.right.constructor.name, expr.right);
 
-        if (expr.operator.type === "BANG") return !this.isTruthy(right);
+        if (expr.operator.type === "BANG") return !right;
         if (expr.operator.type === "MINUS") return -right;
 
         return null;
@@ -92,11 +92,5 @@ export class Interpreter {
 
     binaryErrString(kword1: string, kword2: string, v1: TokenValue, v2: TokenValue, line: number): string {
         return `Cannot ${kword1} type ${capitilizeFirstLetter(typeof v2)} ${kword2} type ${capitilizeFirstLetter(typeof v1)} on line ${line}`;
-    }
-
-    isTruthy(object: Object): boolean {
-        if (object === null) return false;
-        if (object === false) return !object;
-        return true;
     }
 }

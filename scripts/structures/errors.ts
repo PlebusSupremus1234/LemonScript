@@ -1,4 +1,4 @@
-import { red, yellow, cyan, blue, bold } from "./helpers"
+import { red, yellow, cyan, blue, bold } from "../helpers"
 
 class LSError {
     type: string;
