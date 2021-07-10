@@ -1,7 +1,8 @@
-import { Binary, Grouping, Literal, Unary, LSNode } from "./trees/ast"
-import { Errors, SyntaxError } from "./structures/errors"
-import { Token } from "./structures/token";
-import { TokenType } from "./constants";
+import { Binary, Grouping, Literal, Unary, LSNode } from "../trees/ast"
+import { Errors, SyntaxError } from "../structures/errors"
+import { Expression, LSStmt, Print } from "../trees/stmt"
+import { Token } from "../structures/token";
+import { TokenType } from "../constants";
 
 export class Parser {
     tokens: Token[];
@@ -17,11 +18,30 @@ export class Parser {
         this.error = false;
     }
 
-    parse(): [null | LSNode, null | Errors] {
-        let res;
-        try { res = this.expression(); }
-        catch(e) { res = null; }
-        return [res, this.error ? this.error : null];
+    parse(): [LSStmt[], null | Errors] {
+        let statements: LSStmt[] = [];
+        while (!this.isAtEnd()) {
+            statements.push(this.statement());
+            this.advance();
+        }
+
+        return [statements, this.error ? this.error : null];
+    }
+
+    statement() {
+        if (this.match(["PRINT"])) return this.printStatement();
+
+        return this.expressionStatement();
+    }
+
+    printStatement() {
+        let value = this.expression(); // add the brackets later
+        return new Print(value);
+    }
+
+    expressionStatement() {
+        let expr = this.expression();
+        return new Expression(expr);
     }
 
     expression(): LSNode {

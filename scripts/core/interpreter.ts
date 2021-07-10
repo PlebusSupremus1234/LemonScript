@@ -1,7 +1,8 @@
-import { capitilizeFirstLetter } from "./helpers"
-import { Errors, TypeError } from "./structures/errors"
-import { Grouping, Literal, Unary, LSNode, Binary } from "./trees/ast";
-import { Token, TokenValue } from "./structures/token";
+import { capitilizeFirstLetter } from "../helpers"
+import { Errors, TypeError } from "../structures/errors"
+import { Expression, LSStmt, Print } from "../trees/stmt"
+import { Grouping, Literal, Unary, LSNode, Binary } from "../trees/ast";
+import { Token, TokenValue } from "../structures/token";
 
 export class Interpreter {
     fname: string;
@@ -16,28 +17,31 @@ export class Interpreter {
         this.error = null;
     }
 
-    interpret(expr: LSNode) {
-        let res;
-        try { res = this.visit(expr.constructor.name, expr); }
-        catch(e) { res = null; }
-        return [res, this.error ? this.error : null];
+    interpret(statements: LSStmt[]) {
+        try {
+            for (let i of statements) {
+                this.visit(i.constructor.name, i);
+            }
+        } catch (e) {
+            console.log(e);
+        }
     }
 
     visit(type: string, input: LSNode) {
-        let method = `visit${type}Expr`;
+        let method = `visit${type}`;
         if ((this as any)[method]) return (this as any)[method](input);
         else return null;
     }
 
-    visitLiteralExpr(expr: Literal): TokenValue {
+    visitLiteral(expr: Literal): TokenValue {
         return expr.value;
     }
 
-    visitGroupingExpr(expr: Grouping) {
+    visitGrouping(expr: Grouping) {
         return this.visit(expr.expression.constructor.name, expr.expression);
     }
 
-    visitUnaryExpr(expr: Unary) {
+    visitUnary(expr: Unary) {
         let right = this.visit(expr.right.constructor.name, expr.right);
 
         if (expr.operator.type === "BANG") return !right;
@@ -46,7 +50,7 @@ export class Interpreter {
         return null;
     }
 
-    visitBinaryExpr(expr: Binary) {
+    visitBinary(expr: Binary) {
         let l = this.visit(expr.left.constructor.name, expr.left);
         let r = this.visit(expr.right.constructor.name, expr.right);
         let o = expr.operator;
@@ -82,6 +86,17 @@ export class Interpreter {
         } else if (o.type === "BANGEQUAL") return l !== r;
         else if (o.type === "EQUALEQUAL") return l === r;
 
+        return null;
+    }
+
+    visitExpression(stmt: Expression) {
+        this.visit(stmt.expression.constructor.name, stmt.expression);
+        return null;
+    }
+
+    visitPrint(stmt: Print) {
+        let value = this.visit(stmt.expression.constructor.name, stmt.expression);
+        console.log(value);
         return null;
     }
 
