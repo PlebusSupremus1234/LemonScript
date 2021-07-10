@@ -18,7 +18,10 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
 
     interpret(statements: Stmt[]) {
         try {
-            for (const statement of statements) this.execute(statement);
+            for (const statement of statements) {
+                this.execute(statement);
+                if (this.error) return console.log(this.error.stringify());
+            }
         } catch(e) {
             console.log(e);
         }

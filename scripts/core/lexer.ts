@@ -57,7 +57,7 @@ export class Lexer {
         this.currentChar = this.text[this.pos];
         if (this.currentChar === "\n") {
             this.line++;
-            this.rowpos = 1;
+            this.rowpos = 0;
             this.advance();
         }
     }
