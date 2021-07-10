@@ -13,8 +13,4 @@ export class Token {
         this.rowpos = rowpos;
         this.line = line;
     }
-
-    stringify(): string {
-        return `${this.type}: ${this.value}`;
-    }
 }

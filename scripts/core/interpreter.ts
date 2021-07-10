@@ -1,58 +1,62 @@
-import { capitilizeFirstLetter } from "../helpers"
+import { Visitor as ExprVisitor, Expr, Literal, Grouping, Unary, Binary } from "../structures/expr"
+import { Visitor as StmtVisitor, Stmt, Expression, Print } from "../structures/stmt"
+import { Token, TokenValue } from "../structures/token"
 import { Errors, TypeError } from "../structures/errors"
-import { Expression, LSStmt, Print } from "../trees/stmt"
-import { Grouping, Literal, Unary, LSNode, Binary } from "../trees/ast";
-import { Token, TokenValue } from "../structures/token";
+import { capitilizeFirstLetter } from "../helper"
 
-export class Interpreter {
+export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
     fname: string;
     tokens: Token[];
     text: string;
-    error: null | Errors;
+    error: null | Errors = null;
 
-    constructor(fname: string, tokens: Token[], text: string) {
+    constructor(fname: string, text: string, tokens: Token[]) {
         this.fname = fname;
+        this.text = text;   
         this.tokens = tokens;
-        this.text = text;
-        this.error = null;
     }
 
-    interpret(statements: LSStmt[]) {
+    interpret(statements: Stmt[]) {
         try {
-            for (let i of statements) {
-                this.visit(i.constructor.name, i);
-            }
-        } catch (e) {
+            for (const statement of statements) this.execute(statement);
+        } catch(e) {
             console.log(e);
         }
     }
 
-    visit(type: string, input: LSNode) {
-        let method = `visit${type}`;
-        if ((this as any)[method]) return (this as any)[method](input);
-        else return null;
+    // Functions
+    execute(stmt: Stmt) {
+        stmt.accept(this);
     }
 
-    visitLiteral(expr: Literal): TokenValue {
-        return expr.value;
+    evaluate(expr: Expr): TokenValue {
+        return expr.accept<TokenValue>(this);
     }
 
-    visitGrouping(expr: Grouping) {
-        return this.visit(expr.expression.constructor.name, expr.expression);
+    genError(text: string, line: number, operator: Token, left: TokenValue): [string, string, number, number, string] {
+        let token = this.tokens[this.tokens.findIndex(i => i.line === operator.line && i.rowpos === operator.rowpos) + (typeof left !== "number" ? -1 : 1)];
+        return [this.fname, text, line, token.rowpos, this.text.split("\n")[line - 1]];
     }
 
-    visitUnary(expr: Unary) {
-        let right = this.visit(expr.right.constructor.name, expr.right);
+    binaryErrString(kword1: string, kword2: string, v1: TokenValue, v2: TokenValue, line: number): string {
+        return `Cannot ${kword1} type ${capitilizeFirstLetter(typeof v2)} ${kword2} type ${capitilizeFirstLetter(typeof v1)} on line ${line}`;
+    }
 
-        if (expr.operator.type === "BANG") return !right;
-        if (expr.operator.type === "MINUS") return -right;
+    // Visit Expressions
+    visitLiteralExpr(expr: Literal) { return expr.value; }
+    visitGroupingExpr(expr: Grouping) { return this.evaluate(expr.expression); }
+    visitUnaryExpr(expr: Unary) {
+        let rightRaw = this.evaluate(expr.right);
+        let right = rightRaw !== null ? rightRaw.toString() : "null";
+
+        if (expr.operator.type === "BANG") return !rightRaw;
+        if (expr.operator.type === "MINUS") return -(parseFloat(right));
 
         return null;
     }
-
-    visitBinary(expr: Binary) {
-        let l = this.visit(expr.left.constructor.name, expr.left);
-        let r = this.visit(expr.right.constructor.name, expr.right);
+    visitBinaryExpr(expr: Binary) {
+        let l = this.evaluate(expr.left);
+        let r = this.evaluate(expr.right);
         let o = expr.operator;
 
         if (o.type === "PLUS")  {
@@ -89,23 +93,12 @@ export class Interpreter {
         return null;
     }
 
-    visitExpression(stmt: Expression) {
-        this.visit(stmt.expression.constructor.name, stmt.expression);
-        return null;
+    // Visit Statements
+    visitExpressionStmt(stmt: Expression) {
+        this.evaluate(stmt.expression);
     }
-
-    visitPrint(stmt: Print) {
-        let value = this.visit(stmt.expression.constructor.name, stmt.expression);
+    visitPrintStmt(stmt: Print) {
+        let value = this.evaluate(stmt.expression);
         console.log(value);
-        return null;
-    }
-
-    genError(text: string, line: number, operator: Token, left: TokenValue): [string, string, number, number, string] {
-        let token = this.tokens[this.tokens.findIndex(i => i.line === operator.line && i.rowpos === operator.rowpos) + (typeof left !== "number" ? -1 : 1)];
-        return [this.fname, text, line, token.rowpos, this.text.split("\n")[line - 1]];
-    }
-
-    binaryErrString(kword1: string, kword2: string, v1: TokenValue, v2: TokenValue, line: number): string {
-        return `Cannot ${kword1} type ${capitilizeFirstLetter(typeof v2)} ${kword2} type ${capitilizeFirstLetter(typeof v1)} on line ${line}`;
     }
 }

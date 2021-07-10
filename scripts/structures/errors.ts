@@ -1,4 +1,4 @@
-import { red, yellow, cyan, blue, bold } from "../helpers"
+import { red, yellow, cyan, blue, bold } from "../helper"
 
 class LSError {
     type: string;
@@ -27,19 +27,7 @@ class LSError {
     }
 }
 
-export type Errors = IllegalCharacter | UnterminatedString | SyntaxError | TypeError;
-
-export class IllegalCharacter extends LSError {
-    constructor(fname: string, line: number, pos: number, linetext: string, char: string) {
-        super("Illegal Character", `Illegal Character '${char}' detected on line ${line}`, fname, line, pos, linetext);
-    }
-}
-
-export class UnterminatedString extends LSError {
-    constructor(fname: string, line: number, pos: number, linetext: string) {
-        super("Unterminated String", `String on line ${line} has no ending`, fname, line, pos, linetext);
-    }
-}
+export type Errors = SyntaxError | TypeError;
 
 export class SyntaxError extends LSError {
     constructor(fname: string, text: string, line: number, pos: number, linetext: string) {

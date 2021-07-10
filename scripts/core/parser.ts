@@ -1,25 +1,25 @@
-import { Binary, Grouping, Literal, Unary, LSNode } from "../trees/ast"
-import { Errors, SyntaxError } from "../structures/errors"
-import { Expression, LSStmt, Print } from "../trees/stmt"
+import { Expr, Binary, Unary, Literal, Grouping } from "../structures/expr"
+import { Stmt, Print, Expression } from "../structures/stmt"
+
 import { Token } from "../structures/token";
 import { TokenType } from "../constants";
+import { Errors, SyntaxError } from "../structures/errors"
 
 export class Parser {
     tokens: Token[];
     text: string;
     fname: string;
     pos = 0;
-    error: false | Errors;
+    error: null | Errors = null;
 
     constructor(tokens: Token[], fname: string, text: string) {
         this.tokens = tokens;
         this.fname = fname;
         this.text = text;
-        this.error = false;
     }
 
-    parse(): [LSStmt[], null | Errors] {
-        let statements: LSStmt[] = [];
+    parse(): [Stmt[], null | Errors] {
+        let statements: Stmt[] = [];
         while (!this.isAtEnd()) {
             statements.push(this.statement());
             this.advance();
@@ -34,21 +34,38 @@ export class Parser {
         return this.expressionStatement();
     }
 
-    printStatement() {
-        let value = this.expression(); // add the brackets later
-        return new Print(value);
+    // Functions
+
+    advance(): Token {
+        if (!this.isAtEnd()) this.pos++;
+        return this.tokens[this.pos - 1];
     }
 
-    expressionStatement() {
-        let expr = this.expression();
-        return new Expression(expr);
+    check(type: TokenType): boolean {
+        if (this.isAtEnd()) return false;
+        return this.tokens[this.pos].type === type;
+    }
+    
+    isAtEnd(): boolean {
+        return this.tokens[this.pos].type === "EOF";
     }
 
-    expression(): LSNode {
+    match(types: TokenType[]=[]): boolean {
+        for (let i of types) {
+            if (this.check(i)) {
+                this.advance();
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // Expression Evaluation
+    expression(): Expr {
         return this.equality();
     }
 
-    equality(): LSNode {
+    equality(): Expr {
         let expr = this.comparison();
 
         while (this.match(["BANGEQUAL", "EQUALEQUAL"])) {
@@ -59,7 +76,7 @@ export class Parser {
         return expr;
     }
 
-    comparison(): LSNode {
+    comparison(): Expr {
         let expr = this.term();
 
         while (this.match(["GREATER", "GREATEREQUAL", "LESS", "LESSEQUAL"])) {
@@ -70,7 +87,7 @@ export class Parser {
         return expr;
     }
 
-    term(): LSNode {
+    term(): Expr {
         let expr = this.factor();
 
         while (this.match(["MINUS", "PLUS"])) {
@@ -81,7 +98,7 @@ export class Parser {
         return expr;
     }
 
-    factor(): LSNode {
+    factor(): Expr {
         let expr = this.unary();
 
         while (this.match(["DIV", "MUL"])) {
@@ -92,7 +109,7 @@ export class Parser {
         return expr;
     }
 
-    unary(): LSNode {
+    unary(): Expr {
         if (this.match(["BANG", "MINUS"])) {
             let operator = this.tokens[this.pos - 1];
             let right = this.unary();
@@ -101,12 +118,11 @@ export class Parser {
         return this.primary();
     }
 
-    primary(): LSNode {
-        if (this.match(["FALSE"])) return new Literal(false);
-        if (this.match(["TRUE"])) return new Literal(true);
-        if (this.match(["NULL"])) return new Literal(null);
+    primary(): Expr {
+        if (this.match(["FALSE"])) return new Literal("FALSE", false);
+        if (this.match(["TRUE"])) return new Literal("TRUE", true);
         
-        if (this.match(["INT", "FLOAT", "STRING"])) return new Literal(this.tokens[this.pos - 1].value);
+        if (this.match(["INT", "FLOAT", "STRING"])) return new Literal(this.tokens[this.pos - 1].type, this.tokens[this.pos - 1].value);
 
         let lparenpos = this.pos;
         if (this.match(["LPAREN"])) {
@@ -123,30 +139,17 @@ export class Parser {
         let l = prev ? prev.line : 1;
         let txt = `Expected an expression on line ${l}`;
         this.error = new SyntaxError(this.fname, txt, l, prev ? prev.rowpos : 1, this.text.split("\n")[l - 1]);
-        return new Literal("Error");
+        return new Literal("ERROR", "Error");
     }
 
-    match(types: TokenType[]=[]): boolean {
-        for (let i of types) {
-            if (this.check(i)) {
-                this.advance();
-                return true;
-            }
-        }
-        return false;
+    // Statement Evaluation
+    printStatement() {
+        let value = this.expression();
+        return new Print(value);
     }
 
-    advance(): Token {
-        if (!this.isAtEnd()) this.pos++;
-        return this.tokens[this.pos - 1];
-    }
-
-    check(type: TokenType): boolean {
-        if (this.isAtEnd()) return false;
-        return this.tokens[this.pos].type === type;
-    }
-    
-    isAtEnd(): boolean {
-        return this.tokens[this.pos].type === "EOF";
+    expressionStatement() {
+        let expr = this.expression();
+        return new Expression(expr);
     }
 }

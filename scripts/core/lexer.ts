@@ -1,4 +1,4 @@
-import { Errors, IllegalCharacter, UnterminatedString } from "../structures/errors"
+import { Errors, SyntaxError } from "../structures/errors"
 import { Keywords, TokenType } from "../constants";
 import { Token, TokenValue } from "../structures/token"
 
@@ -26,6 +26,43 @@ export class Lexer {
         return [this.tokens, null];
     }
 
+    // Functions
+
+    addToken(type: TokenType, value: TokenValue=this.currentChar, rowpos: number=this.rowpos) {
+        this.tokens.push(new Token(type, value, rowpos, this.line));
+        this.advance();
+    }
+
+    isAlpha(text: string): boolean {
+        if (!text) return false;
+        return text.match(/^[A-Za-z]+$/) !== null;
+    }
+
+    peek(): string {
+        return this.text[this.pos + 1];
+    }
+
+    next(expected: TokenType): boolean {
+        this.advance();
+        return this.currentChar === expected;
+    }
+
+    genError(text: string, pos: number): [string, string, number, number, string] {
+        return [this.fname, text, this.line, pos, this.text.split("\n")[this.line - 1]];
+    }
+
+    advance() {
+        this.pos++;
+        this.rowpos++;
+        this.currentChar = this.text[this.pos];
+        if (this.currentChar === "\n") {
+            this.line++;
+            this.rowpos = 1;
+            this.advance();
+        }
+    }
+
+    // Generate Tokens
     genTokens() {
         while (this.currentChar) {
             if (" \t".includes(this.currentChar)) this.advance();
@@ -54,7 +91,7 @@ export class Lexer {
                 let start = this.pos + 1;
                 let rowstart = this.rowpos;
                 while (this.peek() !== '"' && this.pos < this.text.length) this.advance();
-                if (this.pos >= this.text.length) return new UnterminatedString(this.fname, this.line, rowstart, this.text.split("\n")[this.line - 1]);
+                if (this.pos >= this.text.length) return new SyntaxError(...this.genError(`String on line ${this.line} has no ending`, rowstart));
                 this.advance();
                 this.addToken("STRING", this.text.substring(start, this.pos), start);    
             } else if ("0123456789".includes(this.currentChar)) { // Number
@@ -70,42 +107,12 @@ export class Lexer {
                     } else {
                         this.advance();
                         if (this.peek()) this.advance();
-                        return new IllegalCharacter(this.fname, this.line, this.rowpos, this.text.split("\n")[this.line - 1], this.currentChar);
+                        return new SyntaxError(...this.genError(`Illegal Character '${this.currentChar}' detected on line ${this.line}`, this.rowpos));
                     }
                 }
                 
                 this.addToken(f ? "FLOAT" : "INT", parseFloat(this.text.substring(start, this.pos + 1)));
-            } else return new IllegalCharacter(this.fname, this.line, this.rowpos, this.text.split("\n")[this.line - 1], this.currentChar);
+            } else return new SyntaxError(...this.genError(`Illegal Character '${this.currentChar}' detected on line ${this.line}`, this.rowpos));
         }
-    }
-
-    advance() {
-        this.pos++;
-        this.rowpos++;
-        this.currentChar = this.text[this.pos];
-        if (this.currentChar === "\n") {
-            this.line++;
-            this.rowpos = 1;
-            this.advance();
-        }
-    }
-
-    addToken(type: TokenType, value: TokenValue=this.currentChar, rowpos: number=this.rowpos) {
-        this.tokens.push(new Token(type, value, rowpos, this.line));
-        this.advance();
-    }
-
-    isAlpha(text: string): boolean {
-        if (!text) return false;
-        return text.match(/^[A-Za-z]+$/) !== null;
-    }
-
-    peek(): string {
-        return this.text[this.pos + 1];
-    }
-
-    next(expected: TokenType): boolean {
-        this.advance();
-        return this.currentChar === expected;
     }
 }
