@@ -1,4 +1,5 @@
 import { red, yellow, cyan, blue, bold } from "../helper"
+import { Token } from "./token";
 
 class LSError {
     type: string;
@@ -38,5 +39,13 @@ export class SyntaxError extends LSError {
 export class TypeError extends LSError {
     constructor(fname: string, text: string, line: number, pos: number, linetext: string) {
         super("Type Error", text, fname, line, pos, linetext);
+    }
+}
+
+export class UndefinedVariable extends LSError {
+    constructor(fname: string, varname: string, tokens: Token[], ftext: string) {
+        let token = tokens[tokens.findIndex(i => i.type === "IDENTIFIER" && i.value === varname)];
+        let text = `Undefined variable '${varname}' detected on line ${token.line}`;
+        super("Undefined Variable", text, fname, token.line, token.rowpos, ftext.split("\n")[token.line - 1]);
     }
 }

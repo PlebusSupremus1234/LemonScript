@@ -18,12 +18,15 @@ export class Lexer {
         this.currentChar = this.text[this.pos];
     }
 
-    lex(): [Token[], null | Errors] {
-        let error = this.genTokens();
-        if (error) return [[], error];
-        
+    lex(): void | Token[] {
+        try {
+            this.genTokens();
+        } catch(e) {
+            return console.log(e.stringify());
+        }
+
         this.addToken("EOF", null);
-        return [this.tokens, null];
+        return this.tokens;
     }
 
     // Functions
@@ -86,12 +89,12 @@ export class Lexer {
                 while (this.isAlpha(this.peek()) || "0123456789".includes(this.peek())) this.advance();
                 let text = this.text.substring(start, this.pos + 1);
                 if (Keywords.map(i => i.toLowerCase()).includes(text)) this.addToken(text.toUpperCase(), text, rowstart);
-                else this.addToken("IDENTIFIER", text);
+                else this.addToken("IDENTIFIER", text, rowstart);
             } else if (this.currentChar === '"') { // String
                 let start = this.pos + 1;
                 let rowstart = this.rowpos;
                 while (this.peek() !== '"' && this.pos < this.text.length) this.advance();
-                if (this.pos >= this.text.length) return new SyntaxError(...this.genError(`String on line ${this.line} has no ending`, rowstart));
+                if (this.pos >= this.text.length) throw new SyntaxError(...this.genError(`String on line ${this.line} has no ending`, rowstart));
                 this.advance();
                 this.addToken("STRING", this.text.substring(start, this.pos), start);    
             } else if ("0123456789".includes(this.currentChar)) { // Number
@@ -107,12 +110,12 @@ export class Lexer {
                     } else {
                         this.advance();
                         if (this.peek()) this.advance();
-                        return new SyntaxError(...this.genError(`Illegal Character '${this.currentChar}' detected on line ${this.line}`, this.rowpos));
+                        throw new SyntaxError(...this.genError(`Illegal Character '${this.currentChar}' detected on line ${this.line}`, this.rowpos));
                     }
                 }
                 
                 this.addToken(f ? "FLOAT" : "INT", parseFloat(this.text.substring(start, this.pos + 1)));
-            } else return new SyntaxError(...this.genError(`Illegal Character '${this.currentChar}' detected on line ${this.line}`, this.rowpos));
+            } else throw new SyntaxError(...this.genError(`Illegal Character '${this.currentChar}' detected on line ${this.line}`, this.rowpos));
         }
     }
 }

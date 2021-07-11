@@ -1,5 +1,5 @@
-import { Expr, Binary, Unary, Literal, Grouping } from "../structures/expr"
-import { Stmt, Print, Expression } from "../structures/stmt"
+import { Expr, Binary, Unary, Literal, Grouping, Variable } from "../structures/expr"
+import { Stmt, Print, Expression, Var } from "../structures/stmt"
 
 import { Token } from "../structures/token";
 import { TokenType } from "../constants";
@@ -18,14 +18,25 @@ export class Parser {
         this.text = text;
     }
 
-    parse(): [Stmt[], null | Errors] {
+    parse(): void | Stmt[] {
         let statements: Stmt[] = [];
         while (!this.isAtEnd()) {
-            statements.push(this.statement());
-            this.advance();
+            let statement = this.declaration();
+            if (this.error) return console.log(this.error.stringify());
+            statements.push(statement);
         }
+        return statements;
+    }
 
-        return [statements, this.error ? this.error : null];
+    declaration() {
+        try {
+            if (this.match(["VAR"])) return this.varDeclaration();
+
+            return this.statement();
+        } catch (err) {
+            // this.synchronize(); 
+            return new Expression(new Literal("NULL", null));
+        }
     }
 
     statement() {
@@ -35,7 +46,6 @@ export class Parser {
     }
 
     // Functions
-
     advance(): Token {
         if (!this.isAtEnd()) this.pos++;
         return this.tokens[this.pos - 1];
@@ -124,12 +134,15 @@ export class Parser {
         
         if (this.match(["INT", "FLOAT", "STRING"])) return new Literal(this.tokens[this.pos - 1].type, this.tokens[this.pos - 1].value);
 
+        if (this.match(["IDENTIFIER"])) return new Variable(this.tokens[this.pos - 1]);
+
         let lparenpos = this.pos;
         if (this.match(["LPAREN"])) {
             let expr = this.expression();
             if (this.check("RPAREN")) this.advance();
             else {
                 let p = this.tokens[lparenpos];
+                console.log("ello")
                 this.error = new SyntaxError(this.fname, `Expected a ')' after expression on line ${p.line}`, p.line, p.rowpos, this.text.split("\n")[p.line - 1]);
             }
             return new Grouping(expr);
@@ -151,5 +164,14 @@ export class Parser {
     expressionStatement() {
         let expr = this.expression();
         return new Expression(expr);
+    }
+
+    varDeclaration() {
+        let name = this.advance();
+
+        let initializer: Expr | null = null;
+        if (this.match(["EQUAL"])) initializer = this.expression();
+
+        return new Var(name, initializer);
     }
 }
