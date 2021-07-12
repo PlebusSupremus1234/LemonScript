@@ -43,9 +43,8 @@ export class TypeError extends LSError {
 }
 
 export class UndefinedVariable extends LSError {
-    constructor(fname: string, varname: string, tokens: Token[], ftext: string) {
-        let token = tokens[tokens.findIndex(i => i.type === "IDENTIFIER" && i.value === varname)];
-        let text = `Undefined variable '${varname}' detected on line ${token.line}`;
+    constructor(fname: string, token: Token, ftext: string) {
+        let text = `Undefined variable '${token.stringify()}' detected on line ${token.line}`;
         super("Undefined Variable", text, fname, token.line, token.rowpos, ftext.split("\n")[token.line - 1]);
     }
 }

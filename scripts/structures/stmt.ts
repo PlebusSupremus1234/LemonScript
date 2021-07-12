@@ -2,12 +2,23 @@ import { Expr } from "./expr";
 import { Token } from "../structures/token"
 
 export interface Visitor<T> {
+    visitBlockStmt: (stmt: Block) => T;
     visitExpressionStmt: (stmt: Expression) => T;
     visitPrintStmt: (stmt: Print) => T;
     visitVarStmt: (stmt: Var) => T;
 }
 
-export type Stmt = Expression | Print | Var;
+export type Stmt = Block | Expression | Print | Var;
+
+export class Block {
+    statements: Stmt[];
+
+    constructor(statements: Stmt[]) {
+        this.statements = statements;
+    }
+
+    accept<T>(visitor: Visitor<T>): T { return visitor.visitBlockStmt(this); }
+}
 
 export class Expression {
     expression: Expr;
