@@ -78,7 +78,7 @@ export class Lexer {
                 case "{": this.addToken("LBRACE"); break;
                 case "}": this.addToken("RBRACE"); break;
                 case "!": this.addToken(this.next("=") ? "BANGEQUAL" : "BANG"); break;
-                case "=": this.addToken(this.next("=") ? "EQUAlEQUAL" : "EQUAL"); break;
+                case "=": this.addToken(this.next("=") ? "EQUALEQUAL" : "EQUAL"); break;
                 case "<": this.addToken(this.next("=") ? "LESSEQUAL" : "LESS"); break;
                 case ">": this.addToken(this.next("=") ? "GREATEREQUAL" : "GREATER"); break;
                 case "#": // Comment Line

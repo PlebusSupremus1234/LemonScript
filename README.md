@@ -26,5 +26,6 @@ To run it, you can then type ```ts-node index.ts```. This will run the main file
 ## Change Log
 Starting from 12/7 because I forgot to do it before
 ```
+14/7: Added if statement and while loop and fixed bugs
 12/7: Added scopes and variables
 ```

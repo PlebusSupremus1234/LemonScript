@@ -1,16 +1,15 @@
-import { Expr, Binary, Unary, Literal, Grouping, Variable } from "../structures/expr"
-import { Stmt, Block, Print, Expression, Var } from "../structures/stmt"
+import { Expr, Assign, Binary, Unary, Literal, Grouping, Variable } from "../structures/expr"
+import { Stmt, Block, Expression, If, Print, Var, While } from "../structures/stmt"
 
 import { Token } from "../structures/token";
 import { TokenType } from "../constants";
-import { Errors, SyntaxError } from "../structures/errors"
+import { SyntaxError } from "../structures/errors"
 
 export class Parser {
     tokens: Token[];
     text: string;
     fname: string;
     pos = 0;
-    error: null | Errors = null;
 
     constructor(tokens: Token[], fname: string, text: string) {
         this.tokens = tokens;
@@ -21,24 +20,26 @@ export class Parser {
     parse(): void | Stmt[] {
         let statements: Stmt[] = [];
         while (!this.isAtEnd()) {
-            let statement = this.declaration();
-            if (this.error) return console.log(this.error.stringify());
+            let statement: Stmt;
+            try {
+                statement = this.declaration();
+            } catch(e) {
+                return console.log(e.stringify());
+            }
             statements.push(statement);
         }
         return statements;
     }
 
     declaration() {
-        try {
-            if (this.match(["VAR"])) return this.varDeclaration();
-            return this.statement();
-        } catch (err) {
-            return new Expression(new Literal("NULL", null));
-        }
+        if (this.match(["VAR"])) return this.varDeclaration();
+        return this.statement();
     }
 
     statement() {
+        if (this.match(["IF"])) return this.ifStatement();
         if (this.match(["PRINT"])) return this.printStatement();
+        if (this.match(["WHILE"])) return this.whileStatement();
         if (this.match(["LBRACE"])) return new Block(this.block(this.tokens[this.pos - 1]));
 
         return this.expressionStatement();
@@ -69,9 +70,23 @@ export class Parser {
         return false;
     }
 
-    // Expression Evaluation
+    // Expressions
     expression(): Expr {
-        return this.equality();
+        return this.assignment();
+    }
+
+    assignment(): Expr {
+        let t = this.tokens[this.pos];
+        let expr = this.equality();
+
+        if (this.match(["EQUAL"])) {
+            let value = this.assignment();
+            if (expr instanceof Variable) return new Assign(expr.name, value);
+
+            throw new SyntaxError(this.fname, `Invalid assignment target on line ${t.line}`, t.line, t.rowpos, this.text.split("\n")[t.line - 1]);
+        }
+
+        return expr;
     }
 
     equality(): Expr {
@@ -143,33 +158,46 @@ export class Parser {
                 return new Grouping(expr);
             } else {
                 let p = this.tokens[lparenpos];
-                this.error = new SyntaxError(this.fname, `Expected a ')' after expression on line ${p.line}`, p.line, p.rowpos, this.text.split("\n")[p.line - 1]);
+                throw new SyntaxError(this.fname, `Expected a ')' after expression on line ${p.line}`, p.line, p.rowpos, this.text.split("\n")[p.line - 1]);
             }
         }
 
         let prev = this.tokens[this.pos - 1];
         let l = prev ? prev.line : 1;
         let txt = `Expected an expression on line ${l}`;
-        this.error = new SyntaxError(this.fname, txt, l, prev ? prev.rowpos : 1, this.text.split("\n")[l - 1]);
-        return new Literal("ERROR", "Error");
+        throw new SyntaxError(this.fname, txt, l, prev ? prev.rowpos : 1, this.text.split("\n")[l - 1]);
     }
 
-    // Statement Evaluation
-    printStatement() {
+    // Statements
+    ifStatement(): If {
         if (!this.check("LPAREN")) {
             let t = this.tokens[this.pos - 1];
-            this.error = new SyntaxError(this.fname, `Expected a '(' after 'print' func on line ${t.line}`, t.line, t.rowpos + 5, this.text.split("\n")[t.line - 1]);
+            throw new SyntaxError(this.fname, `Expected a '(' after 'if' statement on line ${t.line}`, t.line, t.rowpos + 2, this.text.split("\n")[t.line - 1]);
+        }
+        let condition = this.expression();
+
+        let thenBranch: Stmt = this.statement();
+        let elseBranch: Stmt | null = null;
+        if (this.match(["ELSE"])) elseBranch = this.statement();
+
+        return new If(condition, thenBranch, elseBranch);
+    }
+
+    printStatement(): Print {
+        if (!this.check("LPAREN")) {
+            let t = this.tokens[this.pos - 1];
+            throw new SyntaxError(this.fname, `Expected a '(' after 'print' func on line ${t.line}`, t.line, t.rowpos + 5, this.text.split("\n")[t.line - 1]);
         }
         let value = this.expression();
         return new Print(value);
     }
 
-    expressionStatement() {
+    expressionStatement(): Expression {
         let expr = this.expression();
         return new Expression(expr);
     }
 
-    varDeclaration() {
+    varDeclaration(): Var {
         let name = this.advance();
 
         let initializer: Expr | null = null;
@@ -178,17 +206,28 @@ export class Parser {
         return new Var(name, initializer);
     }
 
-    block(lbrace: Token) {
+    whileStatement(): While {
+        if (!this.check("LPAREN")) {
+            let t = this.tokens[this.pos - 1];
+            throw new SyntaxError(this.fname, `Expected a '(' after 'while' statement on line ${t.line}`, t.line, t.rowpos + 5, this.text.split("\n")[t.line - 1]);
+        }
+
+        let condition = this.expression();
+        let body: Stmt = this.statement();
+
+        return new While(condition, body);
+    }
+
+    block(lbrace: Token): Stmt[] {
         let statements: Stmt[] = [];
         while (!this.check("RBRACE") && !this.isAtEnd()) statements.push(this.declaration());
 
         if (!this.check("RBRACE")) {
             let text = `Expected a '}' after scope on line ${lbrace.line}`;
-            this.error = new SyntaxError(this.fname, text, lbrace.line, lbrace.rowpos, this.text.split("\n")[lbrace.line - 1]);
+            throw new SyntaxError(this.fname, text, lbrace.line, lbrace.rowpos, this.text.split("\n")[lbrace.line - 1]);
         } else {
             this.advance();
             return statements;
         }
-        return statements;
     }
 }

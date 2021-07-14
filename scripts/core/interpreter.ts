@@ -1,5 +1,5 @@
-import { Visitor as ExprVisitor, Expr, Literal, Grouping, Unary, Binary, Variable } from "../structures/expr"
-import { Visitor as StmtVisitor, Stmt, Block, Expression, Print, Var } from "../structures/stmt"
+import { Visitor as ExprVisitor, Expr, Assign, Literal, Grouping, Unary, Binary, Variable } from "../structures/expr"
+import { Visitor as StmtVisitor, Stmt, Block, Expression, If, Print, Var, While } from "../structures/stmt"
 import { Token, TokenValue } from "../structures/token"
 import { Errors, TypeError } from "../structures/errors"
 import { capitilizeFirstLetter } from "../helper"
@@ -21,7 +21,7 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
 
     interpret(statements: Stmt[]) {
         try {
-            for (const statement of statements) this.execute(statement);
+            for (let statement of statements) this.execute(statement);
         } catch(e) {
             console.log(e.stringify());
         }
@@ -46,6 +46,11 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
     visitLiteralExpr(expr: Literal) { return expr.value; }
     visitGroupingExpr(expr: Grouping) { return this.evaluate(expr.expression); }
     visitVariableExpr(expr: Variable) { return this.environment.get(expr.name, this.text); }
+    visitAssignExpr(expr: Assign) {
+        let value = this.evaluate(expr.value);
+        this.environment.assign(expr.name, value, this.text);
+        return value;
+    }
     visitUnaryExpr(expr: Unary) {
         let rightRaw = this.evaluate(expr.right);
         let right = rightRaw !== null ? rightRaw.toString() : "null";
@@ -55,6 +60,7 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
 
         return null;
     }
+    
     visitBinaryExpr(expr: Binary) {
         let l = this.evaluate(expr.left);
         let r = this.evaluate(expr.right);
@@ -63,10 +69,7 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
         switch (o.type) {
             case "PLUS":
                 if (typeof l === "number" && typeof r === "number") return l + r;
-                if (typeof l === "number" && typeof r === "string") return l + r;
-                if (typeof l === "string" && typeof r === "number") return l + r;
-                if (typeof l === "string" && typeof r === "string") return l + r;
-                // if ((typeof l === "number" || typeof l === "string") && (typeof r === "number" || typeof r === "string")) return l + r;
+                if ((typeof l === "number" || typeof l === "string") && (typeof r === "number" || typeof r === "string")) return String(l) + String(r);
                 this.binaryErr("add", "to", l, r, o, l);
             case "MINUS":
                 if (typeof l === "number" && typeof r === "number") return l - r;
@@ -114,6 +117,11 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
     visitExpressionStmt(stmt: Expression) {
         this.evaluate(stmt.expression);
     }
+    visitIfStmt(stmt: If) {
+        if (this.evaluate(stmt.condition)) this.execute(stmt.thenBranch);
+        else if (stmt.elseBranch !== null) this.execute(stmt.elseBranch);
+        return null;
+    }
     visitPrintStmt(stmt: Print) {
         let value = this.evaluate(stmt.expression);
         console.log(value);
@@ -123,6 +131,9 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
         if (stmt.initializer !== null) value = this.evaluate(stmt.initializer);
 
         if (stmt.name.value) this.environment.define(stmt.name.stringify(), value);
+    }
+    visitWhileStmt(stmt: While) {
+        while (this.evaluate(stmt.condition)) this.execute(stmt.body);
     }
 
     // Other

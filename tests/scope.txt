@@ -1,0 +1,12 @@
+# Scope Test :D
+
+var a = 5
+print(a)
+
+{
+    var b = 12
+    print(a)
+    print(b)
+}
+
+print(b) # should error

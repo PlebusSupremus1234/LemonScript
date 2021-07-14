@@ -2,6 +2,7 @@ import { Token, TokenValue } from "./token";
 import { TokenType } from "../constants"
 
 export interface Visitor<T> {
+    visitAssignExpr: (expr: Assign) => T;
     visitBinaryExpr: (expr: Binary) => T;
     visitGroupingExpr: (expr: Grouping) => T;
     visitLiteralExpr: (expr: Literal) => T;
@@ -9,7 +10,19 @@ export interface Visitor<T> {
     visitVariableExpr: (expr: Variable) => T;
 }
 
-export type Expr = Binary | Grouping | Literal | Unary | Variable;
+export type Expr = Assign | Binary | Grouping | Literal | Unary | Variable;
+
+export class Assign {
+    name: Token;
+    value: Expr;
+
+    constructor(name: Token, value: Expr) {
+        this.name = name;
+        this.value = value;
+    }
+
+    accept<T>(visitor: Visitor<T>): T { return visitor.visitAssignExpr(this); }
+}
 
 export class Binary {
     left: Expr;
