@@ -6,6 +6,7 @@ export function run(fname: string, text: string) {
     let lexer = new Lexer(fname, text);
     let tokens = lexer.lex();
     if (!tokens) return;
+    console.log(tokens);
     
     let parser = new Parser(tokens, fname, text);
     let statements = parser.parse();

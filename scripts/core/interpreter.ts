@@ -1,4 +1,4 @@
-import { Visitor as ExprVisitor, Expr, Assign, Literal, Grouping, Unary, Binary, Variable } from "../structures/expr"
+import { Visitor as ExprVisitor, Expr, Assign, Literal, Logical, Grouping, Unary, Binary, Variable } from "../structures/expr"
 import { Visitor as StmtVisitor, Stmt, Block, Expression, If, Print, Var, While } from "../structures/stmt"
 import { Token, TokenValue } from "../structures/token"
 import { Errors, TypeError } from "../structures/errors"
@@ -9,7 +9,6 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
     fname: string;
     tokens: Token[];
     text: string;
-    error: null | Errors = null;
     environment: Environment;
 
     constructor(fname: string, text: string, tokens: Token[]) {
@@ -60,7 +59,17 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
 
         return null;
     }
-    
+    visitLogicalExpr(expr: Logical) {
+        let left = this.evaluate(expr.left);
+
+        if (expr.operator.type === "OR") {
+            if (left) return left;
+        } else {
+            if (!left) return left;
+        }
+
+        return this.evaluate(expr.right);
+    }
     visitBinaryExpr(expr: Binary) {
         let l = this.evaluate(expr.left);
         let r = this.evaluate(expr.right);

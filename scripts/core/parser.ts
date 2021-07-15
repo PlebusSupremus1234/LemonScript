@@ -1,4 +1,4 @@
-import { Expr, Assign, Binary, Unary, Literal, Grouping, Variable } from "../structures/expr"
+import { Expr, Assign, Binary, Unary, Literal, Logical, Grouping, Variable } from "../structures/expr"
 import { Stmt, Block, Expression, If, Print, Var, While } from "../structures/stmt"
 
 import { Token } from "../structures/token";
@@ -40,6 +40,7 @@ export class Parser {
         if (this.match(["IF"])) return this.ifStatement();
         if (this.match(["PRINT"])) return this.printStatement();
         if (this.match(["WHILE"])) return this.whileStatement();
+        if (this.match(["FOR"])) return this.forStatement();
         if (this.match(["LBRACE"])) return new Block(this.block(this.tokens[this.pos - 1]));
 
         return this.expressionStatement();
@@ -60,6 +61,10 @@ export class Parser {
         return this.tokens[this.pos].type === "EOF";
     }
 
+    genSyntaxErr(token: Token, text: string, offset: number) {
+        throw new SyntaxError(this.fname, `${text} on line ${token.line}`, token.line, token.rowpos + offset, this.text.split("\n")[token.line - 1]);
+    }
+
     match(types: TokenType[]=[]): boolean {
         for (let i of types) {
             if (this.check(i)) {
@@ -77,13 +82,36 @@ export class Parser {
 
     assignment(): Expr {
         let t = this.tokens[this.pos];
-        let expr = this.equality();
+        let expr = this.or();
 
         if (this.match(["EQUAL"])) {
             let value = this.assignment();
             if (expr instanceof Variable) return new Assign(expr.name, value);
 
-            throw new SyntaxError(this.fname, `Invalid assignment target on line ${t.line}`, t.line, t.rowpos, this.text.split("\n")[t.line - 1]);
+            this.genSyntaxErr(t, `Invalid assignment target on line`, 0);
+        }
+        return expr;
+    }
+
+    or() {
+        let expr = this.and();
+
+        while (this.match(["OR"])) {
+            let operator = this.tokens[this.pos - 1];
+            let right = this.and();
+            expr = new Logical(expr, operator, right);
+        }
+
+        return expr;
+    }
+
+    and() {
+        let expr = this.equality();
+
+        while (this.match(["AND"])) {
+            let operator = this.tokens[this.pos - 1];
+            let right = this.equality();
+            expr = new Logical(expr, operator, right);
         }
 
         return expr;
@@ -156,10 +184,7 @@ export class Parser {
             if (this.check("RPAREN")) {
                 this.advance();
                 return new Grouping(expr);
-            } else {
-                let p = this.tokens[lparenpos];
-                throw new SyntaxError(this.fname, `Expected a ')' after expression on line ${p.line}`, p.line, p.rowpos, this.text.split("\n")[p.line - 1]);
-            }
+            } else this.genSyntaxErr(this.tokens[lparenpos], `Expected a ')' after expression`, 0);
         }
 
         let prev = this.tokens[this.pos - 1];
@@ -170,10 +195,7 @@ export class Parser {
 
     // Statements
     ifStatement(): If {
-        if (!this.check("LPAREN")) {
-            let t = this.tokens[this.pos - 1];
-            throw new SyntaxError(this.fname, `Expected a '(' after 'if' statement on line ${t.line}`, t.line, t.rowpos + 2, this.text.split("\n")[t.line - 1]);
-        }
+        if (!this.check("LPAREN")) this.genSyntaxErr(this.tokens[this.pos - 1], `Expected a '(' after 'if' statement`, 2);
         let condition = this.expression();
 
         let thenBranch: Stmt = this.statement();
@@ -184,10 +206,7 @@ export class Parser {
     }
 
     printStatement(): Print {
-        if (!this.check("LPAREN")) {
-            let t = this.tokens[this.pos - 1];
-            throw new SyntaxError(this.fname, `Expected a '(' after 'print' func on line ${t.line}`, t.line, t.rowpos + 5, this.text.split("\n")[t.line - 1]);
-        }
+        if (!this.check("LPAREN")) this.genSyntaxErr(this.tokens[this.pos - 1], `Expected a '(' after 'print' func`, 5);
         let value = this.expression();
         return new Print(value);
     }
@@ -207,10 +226,7 @@ export class Parser {
     }
 
     whileStatement(): While {
-        if (!this.check("LPAREN")) {
-            let t = this.tokens[this.pos - 1];
-            throw new SyntaxError(this.fname, `Expected a '(' after 'while' statement on line ${t.line}`, t.line, t.rowpos + 5, this.text.split("\n")[t.line - 1]);
-        }
+        if (!this.check("LPAREN")) this.genSyntaxErr(this.tokens[this.pos - 1], `Expected a '(' after 'while' statement`, 5);
 
         let condition = this.expression();
         let body: Stmt = this.statement();
@@ -218,14 +234,46 @@ export class Parser {
         return new While(condition, body);
     }
 
+    forStatement(): Stmt {
+        if (!this.check("LPAREN")) this.genSyntaxErr(this.tokens[this.pos - 1], `Expected a '(' after 'for' statement`, 3);
+        this.advance();
+
+        let initializer: Stmt | null = null;
+        if (this.match(["SEMICOLON"])) initializer = null;
+        else if (this.match(["VAR"])) {
+            initializer = this.varDeclaration();
+            this.advance();
+        } else {
+            initializer = this.expressionStatement();
+            this.advance();
+        }
+
+        let condition: Expr | null = null;
+        if (!this.check("SEMICOLON")) condition = this.expression();
+        if (!this.check("SEMICOLON")) this.genSyntaxErr(this.tokens[this.pos - 1], `Expected a ';' after 'for' condition`, 3);
+        else this.advance();
+
+        let increment: Expr | null = null;
+        if (!this.check("RPAREN")) increment = this.expression();
+        if (!this.check("RPAREN")) this.genSyntaxErr(this.tokens[this.pos - 1], `Expected a ')' after 'for' clauses`, 3);
+        else this.advance();
+
+        let body: Stmt = this.statement();
+        if (increment !== null) body = new Block([body, new Expression(increment)]);
+
+        if (condition === null) condition = new Literal("TRUE", true);
+        body = new While(condition, body);
+        if (initializer !== null) body = new Block([initializer, body]);
+
+        return body;
+    }
+
     block(lbrace: Token): Stmt[] {
         let statements: Stmt[] = [];
         while (!this.check("RBRACE") && !this.isAtEnd()) statements.push(this.declaration());
 
-        if (!this.check("RBRACE")) {
-            let text = `Expected a '}' after scope on line ${lbrace.line}`;
-            throw new SyntaxError(this.fname, text, lbrace.line, lbrace.rowpos, this.text.split("\n")[lbrace.line - 1]);
-        } else {
+        if (!this.check("RBRACE")) throw this.genSyntaxErr(lbrace, `Expected a closing '}' after scope`, 0);
+        else {
             this.advance();
             return statements;
         }
