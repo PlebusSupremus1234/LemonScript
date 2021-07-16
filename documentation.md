@@ -1,7 +1,15 @@
 # LemonScript Documentation
 ### Here is the documentation for LemonScript.
+## Contents:
+- [Binary Operators](https://github.com/PlebusSupremus1234/LemonScript/blob/master/documentation.md#binary-operators)
+- [Variables](https://github.com/PlebusSupremus1234/LemonScript/blob/master/documentation.md#variables)
+- [Print Function](https://github.com/PlebusSupremus1234/LemonScript/blob/master/documentation.md#print-function)
+- [If/Else Statements](https://github.com/PlebusSupremus1234/LemonScript/blob/master/documentation.md#ifelse-statements)
+- [While Loop](https://github.com/PlebusSupremus1234/LemonScript/blob/master/documentation.md#while-loop)
+- [For Loop](https://github.com/PlebusSupremus1234/LemonScript/blob/master/documentation.md#for-loop)
+- [Functions](https://github.com/PlebusSupremus1234/LemonScript/blob/master/documentation.md#functions)
 
-### Binary Operators
+## Binary Operators
 In LemonScript, there are a variety of operations such as `+`, `-`, `*` and `/`. Here is a list of all of them and what they do:
 - `+` - The plus operator can add a number or string to another number or string. For example `5 + 6` will return `11`, and `"Hi I'm " + "Bob"` will return `Hi I'm Bob`. If it's a number plus a string, or the other way around, it'll treat both values a string. 
 
@@ -13,7 +21,7 @@ In LemonScript, there are a variety of operations such as `+`, `-`, `*` and `/`.
 
 - `%` - The modulus operator returns the remainder when a number is divided by another number. For example, `14 % 4` will return `2` because the highest multiple of 4 is 12, and `14 - 12` is 2. 
 
-#### Comparison Operators
+### Comparison Operators
 These operators return a boolean value (true or false) when comparing 2 expressions. 
 
 - `<` or `<=` - The less or less or equal than operators check 2 numbers to another, and if they're less or equal. For example, `4 < 5` returns `true`, but `14 < 8` is `false`. The `<=` operator does the same thing, but also checks for equality, i.e `6 <= 6` is `true`.
@@ -22,14 +30,14 @@ These operators return a boolean value (true or false) when comparing 2 expressi
 
 - `==` - The equals operator checks if 2 values have the same type, and the same value. For example, `"hello" == "hello"` is true, but `"5" == 5` or `23 == 41.2` are not. 
 
-### Variables
+## Variables
 To declare a variable, you can use the `var` keyword with this syntax:
 ```js
 var [variable_name] = [variable_value]
 ```
 The variable name has to start with an alphabetical letter or an underscore, then can be any character. It cannot contain spaces. 
 
-The value can be an expression, value, or even another variable. For example a number or a string. 
+The value can be an expression, value, or even another variable. For example a number or a string. Without the value, the variable's value is automatically set to `null`. 
 
 Something to keep in mind when using variables is the scope. A variable is only avaliable in the scope, and cannot be accessed outside it. For example:
 ```js
@@ -42,14 +50,14 @@ print(b) # Error
 ```
 The `print(b)` line will throw an error, because the variable b is only avaliable inside the if statement scope. 
 
-### Print Function
+## Print Function
 To output a value in the console, you can use the `print` function with this syntax:
 ```js
 print([value])
 ```
 The value can either be a LemonScript value, or an expression. 
 
-### If/Else Statements
+## If/Else Statements
 To write an if statement, you can use the `if` keyword with this syntax:
 ```js
 if ([condition]) {
@@ -66,7 +74,7 @@ if ([condition]) {
 ```
 The code in the else statement will execute if the condition isnt truthy.
 
-### While Loop
+## While Loop
 To write a while loop, you can use the `while` keyword with this syntax:
 ```js
 while ([condition]) {
@@ -75,7 +83,7 @@ while ([condition]) {
 ```
 As the name implies, while the condition is truthy, the code will execute. Be careful with this, as sometimes this can cause an infinite loop. 
 
-### For Loop
+## For Loop
 A for loop is a refactored while loop with a different syntax:
 ```js
 for ([variable]; [condition]; [increment]) {
@@ -94,4 +102,27 @@ The variable can be a variable declaration, or an existing variable. The loop wi
 ```js
 for (var i = 0; i < 5; i = i + 1) print(i)
 ```
-This loop will output `0`, `1`, `2`, `3`, `4`
+This loop will output `0`, `1`, `2`, `3`, `4`. You can also remove the variable clause if you have a pre existing variable, for example:
+```js
+var a = 0
+for (; a < 5; a = a + 1) print(a)
+```
+
+## Functions
+A function is a block of code that you can use multiple times to peform a particular task. The syntax is:
+```js
+func [function name]([args (optional)]) {
+    [code]
+}
+```
+The function name follows the same rules as a variable name. Next, are the arguments. These are optional, and are seperated with commas. For example:
+```js
+func add(num1, num2) {
+    print(num1 + num2)
+}
+
+add(1, 2)
+add(14, 6.54)
+add(123, -11)
+```
+This is a basic function that takes 2 inputs, and prints the sum. Then it is used multiple times with different inputs. 

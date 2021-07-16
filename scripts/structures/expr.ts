@@ -4,6 +4,7 @@ import { TokenType } from "../constants"
 export interface Visitor<T> {
     visitAssignExpr: (expr: Assign) => T;
     visitBinaryExpr: (expr: Binary) => T;
+    visitCallExpr: (expr: Call, pos: Token) => T;
     visitGroupingExpr: (expr: Grouping) => T;
     visitLiteralExpr: (expr: Literal) => T;
     visitLogicalExpr: (expr: Logical) => T;
@@ -11,7 +12,7 @@ export interface Visitor<T> {
     visitVariableExpr: (expr: Variable) => T;
 }
 
-export type Expr = Assign | Binary | Grouping | Literal | Logical | Unary | Variable;
+export type Expr = Assign | Binary | Call | Grouping | Literal | Logical | Unary | Variable;
 
 export class Assign {
     name: Token;
@@ -37,6 +38,20 @@ export class Binary {
     }
 
     accept<T>(visitor: Visitor<T>): T { return visitor.visitBinaryExpr(this); }
+}
+
+export class Call {
+    callee: Expr;
+    paren: Token;
+    args: Expr[];
+
+    constructor(callee: Expr, paren: Token, args: Expr[]) {
+        this.callee = callee;
+        this.paren = paren;
+        this.args = args;
+    }
+
+    accept<T>(visitor: Visitor<T>): T { return visitor.visitCallExpr(this, this.paren); }
 }
 
 export class Grouping {

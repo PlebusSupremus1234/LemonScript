@@ -18,6 +18,11 @@ export class Lexer {
     }
 
     lex(): void | Token[] {
+        if (this.currentChar === "\n") {
+            this.pos--;
+            this.rowpos--;
+            this.advance();
+        }
         while (!this.isAtEnd()) {
             try {
                 this.genToken();
@@ -82,6 +87,7 @@ export class Lexer {
             case "{": this.addToken("LBRACE"); break;
             case "}": this.addToken("RBRACE"); break;
             case ";": this.addToken("SEMICOLON"); break;
+            case ",": this.addToken("COMMA"); break;
             case "!":
                 if (this.next("=")) this.addToken("BANGEQUAL", "!=", this.rowpos - 1);
                 else this.addToken("BANG", "!", this.rowpos - 1);
@@ -108,7 +114,7 @@ export class Lexer {
                 while (this.peek() !== '"' && !this.isAtEnd()) this.advance();
                 if (this.pos >= this.text.length) throw new SyntaxError(...this.genError(`String on line ${this.line} has no ending`, rowstart));
                 this.advance();
-                this.addToken("STRING", this.text.substring(start, this.pos), start);
+                this.addToken("STRING", this.text.substring(start, this.pos), rowstart);
                 break;
             default: // Other
                 if (" \t".includes(this.currentChar)) this.advance();

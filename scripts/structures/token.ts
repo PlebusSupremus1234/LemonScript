@@ -1,6 +1,7 @@
 import { TokenType } from "../constants"
+import { Callable } from "./callable"
 
-export type TokenValue = null | boolean | number | string;
+export type TokenValue = null | boolean | number | string | Callable;
 export class Token {
     type: TokenType;
     value: TokenValue;

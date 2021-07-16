@@ -1,7 +1,7 @@
 # LemonScript
 A programming language made with TypeScript.
 
-LemonScript is still in very heavy development, and is currently up to: For and While Loops
+LemonScript is still in very heavy development, and is currently up to: Functions
 
 Here is a preview of how I would want LemonScript to be like:
 ```js
@@ -26,7 +26,8 @@ To run it, you can then type ```ts-node index.ts```. This will run the main file
 ## Change Log
 Starting from 12/7 because I forgot to do it before
 ```
-16/7: Added for loop, and fixed lexer
+17/7: Added Functions, fixed lexer, but need to implement return
+16/7: Added for loop, documentation and fixed lexer
 14/7: Added if statement and while loop and fixed bugs
 12/7: Added scopes and variables
 ```

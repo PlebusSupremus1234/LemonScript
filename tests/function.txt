@@ -1,0 +1,8 @@
+func add(num1, num2) {
+    print(num1 + num2)
+}
+
+for (var i = 0; i < 5; i = i + 1) {
+    print(i + " + " + i + " =")
+    add(i, i)
+}

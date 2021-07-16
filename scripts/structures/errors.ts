@@ -28,7 +28,7 @@ class LSError {
     }
 }
 
-export type Errors = SyntaxError | TypeError;
+export type Errors = SyntaxError | TypeError | UndefinedVariable | InvalidFunction;
 
 export class SyntaxError extends LSError {
     constructor(fname: string, text: string, line: number, pos: number, linetext: string) {
@@ -43,8 +43,14 @@ export class TypeError extends LSError {
 }
 
 export class UndefinedVariable extends LSError {
-    constructor(fname: string, token: Token, ftext: string) {
+    constructor(fname: string, ftext: string, token: Token) {
         let text = `Undefined variable '${token.stringify()}' detected on line ${token.line}`;
         super("Undefined Variable", text, fname, token.line, token.rowpos, ftext.split("\n")[token.line - 1]);
+    }
+}
+
+export class InvalidFunction extends LSError {
+    constructor(fname: string, text: string, line: number, pos: number, linetext: string, type: string) {
+        super(`Invalid Function ${type}`, text, fname, line, pos, linetext);
     }
 }

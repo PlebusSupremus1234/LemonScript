@@ -1,9 +1,11 @@
-import { Visitor as ExprVisitor, Expr, Assign, Literal, Logical, Grouping, Unary, Binary, Variable } from "../structures/expr"
-import { Visitor as StmtVisitor, Stmt, Block, Expression, If, Print, Var, While } from "../structures/stmt"
+import { Visitor as ExprVisitor, Expr, Assign, Binary, Call, Literal, Logical, Grouping, Unary, Variable } from "../structures/expr"
+import { Visitor as StmtVisitor, Stmt, Block, Expression, Func, If, Print, Var, While } from "../structures/stmt"
 import { Token, TokenValue } from "../structures/token"
-import { Errors, TypeError } from "../structures/errors"
+import { TypeError, InvalidFunction } from "../structures/errors"
 import { capitilizeFirstLetter } from "../helper"
 import { Environment } from "../structures/environment"
+import { Callable } from "../structures/callable"
+import { Function } from "../structures/function"
 
 export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
     fname: string;
@@ -35,21 +37,31 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
         return expr.accept<TokenValue>(this);
     }
     
+    isCallable(callee: any): callee is Callable {
+        return callee.call && (typeof callee.call === "function") && callee.arity && (typeof callee.arity === "function");
+    }
+
+    functionErr(text: string, type: string, line: number, pos: number) {
+        throw new InvalidFunction(this.fname, `${text} on line ${line}`, line, pos, this.text.split("\n")[line - 1], type) ;
+    }
+
     binaryErr(kw1: string, kw2: string, v1: TokenValue, v2: TokenValue, op: Token, left: TokenValue) {
         let text = `Cannot ${kw1} type ${capitilizeFirstLetter(typeof v2)} ${kw2} type ${capitilizeFirstLetter(typeof v1)} on line ${op.line}`;
         let token = this.tokens[this.tokens.findIndex(i => i.line === op.line && i.rowpos === op.rowpos) + (typeof left !== "number" ? -1 : 1)];
         throw new TypeError(this.fname, text, op.line, token.rowpos, this.text.split("\n")[op.line - 1]);
-    }    
+    }
 
     // Visit Expressions
     visitLiteralExpr(expr: Literal) { return expr.value; }
     visitGroupingExpr(expr: Grouping) { return this.evaluate(expr.expression); }
     visitVariableExpr(expr: Variable) { return this.environment.get(expr.name, this.text); }
+
     visitAssignExpr(expr: Assign) {
         let value = this.evaluate(expr.value);
         this.environment.assign(expr.name, value, this.text);
         return value;
     }
+
     visitUnaryExpr(expr: Unary) {
         let rightRaw = this.evaluate(expr.right);
         let right = rightRaw !== null ? rightRaw.toString() : "null";
@@ -59,6 +71,7 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
 
         return null;
     }
+
     visitLogicalExpr(expr: Logical) {
         let left = this.evaluate(expr.left);
 
@@ -70,6 +83,24 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
 
         return this.evaluate(expr.right);
     }
+
+    visitCallExpr(expr: Call, pos: Token) {
+        let callee = this.evaluate(expr.callee);
+        
+        let args = [];
+        for (let arg of expr.args) args.push(this.evaluate(arg));
+
+        let index = this.tokens.findIndex(i => i.line === pos.line && i.rowpos === pos.rowpos);
+        let current = this.tokens[index - 2];
+        if (!this.isCallable(callee)) throw this.functionErr("Can only call functions and classes", "Call", current.line, current.rowpos);
+
+        let fn = callee;
+        current = this.tokens[index];
+        if (args.length !== fn.arity()) throw this.functionErr(`Expected ${fn.arity()} arguments but got ${args.length}`, "Call", current.line, current.rowpos);
+
+        return fn.call(this, args);
+    }
+
     visitBinaryExpr(expr: Binary) {
         let l = this.evaluate(expr.left);
         let r = this.evaluate(expr.right);
@@ -123,24 +154,34 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
         this.executeBlock(stmt.statements, new Environment(this.fname, this.environment));
         return null;
     }
+
     visitExpressionStmt(stmt: Expression) {
         this.evaluate(stmt.expression);
     }
+
+    visitFuncStmt(stmt: Func) {
+        let func = new Function(this.fname, stmt);
+        this.environment.define(stmt.name.stringify(), func);
+    }
+
     visitIfStmt(stmt: If) {
         if (this.evaluate(stmt.condition)) this.execute(stmt.thenBranch);
         else if (stmt.elseBranch !== null) this.execute(stmt.elseBranch);
         return null;
     }
+
     visitPrintStmt(stmt: Print) {
         let value = this.evaluate(stmt.expression);
         console.log(value);
     }
+
     visitVarStmt(stmt: Var) {
         let value: TokenValue = null;        
         if (stmt.initializer !== null) value = this.evaluate(stmt.initializer);
 
         if (stmt.name.value) this.environment.define(stmt.name.stringify(), value);
     }
+
     visitWhileStmt(stmt: While) {
         while (this.evaluate(stmt.condition)) this.execute(stmt.body);
     }
@@ -150,7 +191,6 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
         let previous = this.environment;
         try {
             this.environment = environment;
-
             for (let statement of statements) this.execute(statement);
         } finally {
             this.environment = previous;

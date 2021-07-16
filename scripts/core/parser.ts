@@ -1,9 +1,9 @@
-import { Expr, Assign, Binary, Unary, Literal, Logical, Grouping, Variable } from "../structures/expr"
-import { Stmt, Block, Expression, If, Print, Var, While } from "../structures/stmt"
+import { Expr, Assign, Binary, Call, Grouping, Literal, Logical, Unary, Variable } from "../structures/expr"
+import { Stmt, Block, Expression, Func, If, Print, Var, While } from "../structures/stmt"
 
 import { Token } from "../structures/token";
 import { TokenType } from "../constants";
-import { SyntaxError } from "../structures/errors"
+import { SyntaxError, InvalidFunction } from "../structures/errors"
 
 export class Parser {
     tokens: Token[];
@@ -31,7 +31,9 @@ export class Parser {
         return statements;
     }
 
+    // Declarations
     declaration() {
+        if (this.match(["FUNC"])) return this.function("function");
         if (this.match(["VAR"])) return this.varDeclaration();
         return this.statement();
     }
@@ -44,6 +46,45 @@ export class Parser {
         if (this.match(["LBRACE"])) return new Block(this.block(this.tokens[this.pos - 1]));
 
         return this.expressionStatement();
+    }
+
+    varDeclaration(): Var {
+        let name = this.advance();
+
+        let initializer: Expr | null = null;
+        if (this.match(["EQUAL"])) initializer = this.expression();
+
+        return new Var(name, initializer);
+    }
+
+    function(kind: string) {
+        let name: Token;
+        let curr = this.tokens[this.pos];
+        if (!this.check("IDENTIFIER")) throw this.genFunctionErr(`Expected a ${kind} name`, "Declaration", curr.line, curr.rowpos);
+        else name = this.advance();
+
+        if (!this.check("LPAREN")) this.genSyntaxErr(this.tokens[this.pos], `Expected a '(' after ${kind} name`, 0);
+        else this.advance();
+
+        let parameters = [];
+        if (!this.check("RPAREN")) {
+            do {
+                curr = this.tokens[this.pos];
+                if (parameters.length >= 255) this.genFunctionErr(`Function cannot have more than 255 parameters`, "Declaration", curr.line, curr.rowpos);
+                let append: Token;
+                if (!this.check("IDENTIFIER")) throw this.genFunctionErr(`Expected a parameter name`, "Declaration", curr.line, curr.rowpos);
+                else append = this.advance();
+                parameters.push(append);
+            } while (this.match(["COMMA"]));
+        }
+
+        if (!this.check("RPAREN")) this.genSyntaxErr(this.tokens[this.pos], `Expected a ')' after parameters`, 0);
+        else this.advance();
+        if (!this.check("LBRACE")) this.genSyntaxErr(this.tokens[this.pos], `Expected a '{' before ${kind} body`, 0);
+        else this.advance();
+
+        let body = this.block(this.tokens[this.pos - 1]);
+        return new Func(name, parameters, body);
     }
 
     // Functions
@@ -63,6 +104,10 @@ export class Parser {
 
     genSyntaxErr(token: Token, text: string, offset: number) {
         throw new SyntaxError(this.fname, `${text} on line ${token.line}`, token.line, token.rowpos + offset, this.text.split("\n")[token.line - 1]);
+    }
+
+    genFunctionErr(text: string, type: string, line: number, pos: number) {
+        throw new InvalidFunction(this.fname, `${text} on line ${line}`, line, pos, this.text.split("\n")[line - 1], type) ;
     }
 
     match(types: TokenType[]=[]): boolean {
@@ -167,7 +212,16 @@ export class Parser {
             let right = this.unary();
             return new Unary(operator, right);
         }
-        return this.primary();
+        return this.call();
+    }
+
+    call() {
+        let expr: Expr = this.primary();
+        while (true) {
+            if (this.match(["LPAREN"])) expr = this.finishCall(expr);
+            else break;
+        }
+        return expr;
     }
 
     primary(): Expr {
@@ -216,15 +270,6 @@ export class Parser {
         return new Expression(expr);
     }
 
-    varDeclaration(): Var {
-        let name = this.advance();
-
-        let initializer: Expr | null = null;
-        if (this.match(["EQUAL"])) initializer = this.expression();
-
-        return new Var(name, initializer);
-    }
-
     whileStatement(): While {
         if (!this.check("LPAREN")) this.genSyntaxErr(this.tokens[this.pos - 1], `Expected a '(' after 'while' statement`, 5);
 
@@ -268,6 +313,7 @@ export class Parser {
         return body;
     }
 
+    // Other
     block(lbrace: Token): Stmt[] {
         let statements: Stmt[] = [];
         while (!this.check("RBRACE") && !this.isAtEnd()) statements.push(this.declaration());
@@ -277,5 +323,24 @@ export class Parser {
             this.advance();
             return statements;
         }
+    }
+
+    finishCall(callee: Expr) {
+        let args = [];
+        if (!this.check("RPAREN")) {
+            do {
+                if (args.length >= 255) {
+                    let current = this.tokens[this.pos];
+                    this.genFunctionErr(`Function call cannot have more than 255 arguments`, "Call", current.line, current.rowpos);
+                }
+                args.push(this.expression());
+            } while (this.match(["COMMA"]));
+        }
+
+        let paren: Token;
+        if (!this.check("RPAREN")) throw this.genSyntaxErr(this.tokens[this.pos], `Expect ')' after function arguments`, 0);
+        else paren = this.advance();
+
+        return new Call(callee, paren, args);
     }
 }
