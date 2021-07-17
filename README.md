@@ -1,33 +1,43 @@
 # LemonScript
 A programming language made with TypeScript.
 
-LemonScript is still in very heavy development, and is currently up to: Functions
+LemonScript is still in heavy development, and is currently up to: Local Functions and Closures. 
 
-Here is a preview of how I would want LemonScript to be like:
+Here is a preview of LemonScript:
 ```js
-# string variable
-var name = "Pleb"
-print(name)
+# Variables
+var a = 1
+var b = 2
+print(a * 2 + b) # 4
 
-# functions
+# Functions
 func isEven(num) {
     if (num % 2 == 0) return true
     else return false
 }
-print(isEven(12))
+
+print(isEven(12)) # true
 ```
 
-Currently, the language is not compiled, so you will have to download ts-node, readline, fs and @types/node if you would like to use it. (Can't see why you would)
+A full list on all the functionality of LemonScript and how to use them can be found [here](https://github.com/PlebusSupremus1234/LemonScript/blob/master/documentation.md).
 
-```npm install ts-node @types/node readline fs```
+## Installation
+Currently, LemonScript is not compiled, so you will have to:
 
-To run it, you can then type ```ts-node index.ts```. This will run the main file. You can then either write the code directly into the terminal, or create a file with the code and then run ```ls run [file]``` inside the terminal. 
+1. Clone/Download the repo, (make sure you have node.js installed)
+2. Install the dependencies with `npm install`.
+3. Run `ts-node index.ts` in the directory to run LemonScript.
+
+## Usage
+To start LemonScript, run `ts-node index.ts` in the directory. Then, you can either directly write code into the terminal, or run a file with `ls run [file]`. There are numerous existing tests and scripts you can run, for example `ls run tests/for-loop.txt`.
 
 ## Change Log
 Starting from 12/7 because I forgot to do it before
 ```
-17/7: Added Functions, fixed lexer, but need to implement return
+17/7: Added Functions and fixed the lexer
 16/7: Added for loop, documentation and fixed lexer
 14/7: Added if statement and while loop and fixed bugs
 12/7: Added scopes and variables
 ```
+
+Made by Plebus Supremus

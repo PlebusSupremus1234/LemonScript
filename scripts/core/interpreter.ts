@@ -1,11 +1,12 @@
 import { Visitor as ExprVisitor, Expr, Assign, Binary, Call, Literal, Logical, Grouping, Unary, Variable } from "../structures/expr"
-import { Visitor as StmtVisitor, Stmt, Block, Expression, Func, If, Print, Var, While } from "../structures/stmt"
+import { Visitor as StmtVisitor, Stmt, Block, Expression, Func, If, Print, Return, Var, While } from "../structures/stmt"
 import { Token, TokenValue } from "../structures/token"
 import { TypeError, InvalidFunction } from "../structures/errors"
 import { capitilizeFirstLetter } from "../helper"
 import { Environment } from "../structures/environment"
 import { Callable } from "../structures/callable"
 import { Function } from "../structures/function"
+import { ReturnException } from "../structures/return-exception"
 
 export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
     fname: string;
@@ -173,6 +174,13 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
     visitPrintStmt(stmt: Print) {
         let value = this.evaluate(stmt.expression);
         console.log(value);
+    }
+
+    visitReturnStmt(stmt: Return) {
+        let value: TokenValue = null;
+        if (stmt.value !== null) value = this.evaluate(stmt.value); 
+
+        throw new ReturnException(value);
     }
 
     visitVarStmt(stmt: Var) {

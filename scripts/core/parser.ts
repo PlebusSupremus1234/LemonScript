@@ -1,5 +1,5 @@
 import { Expr, Assign, Binary, Call, Grouping, Literal, Logical, Unary, Variable } from "../structures/expr"
-import { Stmt, Block, Expression, Func, If, Print, Var, While } from "../structures/stmt"
+import { Stmt, Block, Expression, Func, If, Print, Return, Var, While } from "../structures/stmt"
 
 import { Token } from "../structures/token";
 import { TokenType } from "../constants";
@@ -41,6 +41,7 @@ export class Parser {
     statement() {
         if (this.match(["IF"])) return this.ifStatement();
         if (this.match(["PRINT"])) return this.printStatement();
+        if (this.match(["RETURN"])) return this.returnStatement();
         if (this.match(["WHILE"])) return this.whileStatement();
         if (this.match(["FOR"])) return this.forStatement();
         if (this.match(["LBRACE"])) return new Block(this.block(this.tokens[this.pos - 1]));
@@ -268,6 +269,14 @@ export class Parser {
     expressionStatement(): Expression {
         let expr = this.expression();
         return new Expression(expr);
+    }
+
+    returnStatement(): Return {
+        let keyword = this.tokens[this.pos - 1];
+        let value: Expr | null = null;
+        if (this.tokens[this.pos].line === keyword.line) value = this.expression();
+
+        return new Return(keyword, value);
     }
 
     whileStatement(): While {

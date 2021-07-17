@@ -118,11 +118,11 @@ func [function name]([args (optional)]) {
 The function name follows the same rules as a variable name. Next, are the arguments. These are optional, and are seperated with commas. For example:
 ```js
 func add(num1, num2) {
-    print(num1 + num2)
+    return num1 + num2
 }
 
-add(1, 2)
-add(14, 6.54)
-add(123, -11)
+print(add(1, 2))
+print(add(14, 6.54))
+print(add(123, -11))
 ```
-This is a basic function that takes 2 inputs, and prints the sum. Then it is used multiple times with different inputs. 
+This is a basic function that takes 2 inputs, then returns the sum. Returning a value stops the fuction, and returns the value in the statement. This means that proceeding code after the statement will not execute. If there is no expression or no return statement, the function automatically returns `null`. 

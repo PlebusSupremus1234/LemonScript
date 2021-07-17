@@ -1,7 +1,8 @@
-import { Callable } from "./callable";
-import { Environment } from "./environment";
-import { Func } from "./stmt";
-import { Interpreter } from "../core/interpreter";
+import { Callable } from "./callable"
+import { Environment } from "./environment"
+import { Func } from "./stmt"
+import { Interpreter } from "../core/interpreter"
+import { ReturnException } from "./return-exception"
 
 export class Function implements Callable {
     declaration: Func;
@@ -21,7 +22,11 @@ export class Function implements Callable {
         
         for (let i = 0; i < this.declaration.params.length; i++) environment.define(this.declaration.params[i].stringify(), args[i]);
 
-        interpreter.executeBlock(this.declaration.body, environment);
+        try {
+            interpreter.executeBlock(this.declaration.body, environment);
+        } catch (e) {
+            if (e instanceof ReturnException) return e.value;
+        }
         return null;
     }
 
