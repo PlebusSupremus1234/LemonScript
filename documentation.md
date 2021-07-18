@@ -3,6 +3,7 @@
 ## Contents:
 - [Binary Operators](https://github.com/PlebusSupremus1234/LemonScript/blob/master/documentation.md#binary-operators)
 - [Variables](https://github.com/PlebusSupremus1234/LemonScript/blob/master/documentation.md#variables)
+- [Comments](https://github.com/PlebusSupremus1234/LemonScript/blob/master/documentation.md#comments)
 - [Print Function](https://github.com/PlebusSupremus1234/LemonScript/blob/master/documentation.md#print-function)
 - [If/Else Statements](https://github.com/PlebusSupremus1234/LemonScript/blob/master/documentation.md#ifelse-statements)
 - [While Loop](https://github.com/PlebusSupremus1234/LemonScript/blob/master/documentation.md#while-loop)
@@ -20,6 +21,8 @@ In LemonScript, there are a variety of operations such as `+`, `-`, `*` and `/`.
 - `/` - The divide operator can only divide a number from another number, for example `12 / 3` will return `4`. 
 
 - `%` - The modulus operator returns the remainder when a number is divided by another number. For example, `14 % 4` will return `2` because the highest multiple of 4 is 12, and `14 - 12` is 2. 
+
+- `^` - The caret operator exponentializes a number to another number. For example `2 ^ 3` will return `8`. Other types will throw an error. 
 
 ### Comparison Operators
 These operators return a boolean value (true or false) when comparing 2 expressions. 
@@ -49,6 +52,20 @@ if (a > 3) {
 print(b) # Error
 ```
 The `print(b)` line will throw an error, because the variable b is only avaliable inside the if statement scope. 
+
+## Comments
+A comment is a line of text that is ignored by the interpreter. It's useful for adding notes to describe what's going on, or to remove a bit of code from being executed. In LemonScript, you can comment using `#`. For example:
+```js
+# Check if a number is prime
+func isPrime(num) {
+    for (var i = 2; i < num; i = i + 1) {
+        if (num % i == 0) return false
+    }
+    return true
+}
+
+print(isPrime(17))
+```
 
 ## Print Function
 To output a value in the console, you can use the `print` function with this syntax:

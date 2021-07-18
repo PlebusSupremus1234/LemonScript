@@ -24,11 +24,8 @@ export class Lexer {
             this.advance();
         }
         while (!this.isAtEnd()) {
-            try {
-                this.genToken();
-            } catch(e) {
-                return console.log(e.stringify());
-            }
+            try { this.genToken(); }
+            catch(e) { return console.log(e.stringify()); }
         }
         this.addToken("EOF", null);
         return this.tokens;
@@ -82,6 +79,8 @@ export class Lexer {
             case "*": this.addToken("MUL"); break;
             case "/": this.addToken("DIV"); break;
             case "%": this.addToken("MOD"); break;
+            case "^": this.addToken("CARET"); break;
+            case "/": this.addToken("DIV"); break;
             case "(": this.addToken("LPAREN"); break;
             case ")": this.addToken("RPAREN"); break;
             case "{": this.addToken("LBRACE"); break;

@@ -1,7 +1,7 @@
 import { red, yellow, cyan, blue, bold } from "../helper"
 import { Token } from "./token";
 
-class LSError {
+export class LSError {
     type: string;
     error: string;
     fname: string;
@@ -43,8 +43,8 @@ export class TypeError extends LSError {
 }
 
 export class UndefinedVariable extends LSError {
-    constructor(fname: string, ftext: string, token: Token) {
-        let text = `Undefined variable '${token.stringify()}' detected on line ${token.line}`;
+    constructor(fname: string, ftext: string, token: Token, txt?: string) {
+        let text = txt ? txt : `Undefined variable '${token.stringify()}' detected on line ${token.line}`;
         super("Undefined Variable", text, fname, token.line, token.rowpos, ftext.split("\n")[token.line - 1]);
     }
 }

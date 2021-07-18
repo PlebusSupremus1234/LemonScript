@@ -10,12 +10,20 @@ export class Environment {
 
     constructor(fname: string, enclosing: null | Environment) {
         this.fname = fname;
-
         if (enclosing) this.enclosing = enclosing;
     }
 
     define(name: string, value: TokenValue) {
         this.values.set(name, value);
+    }
+
+    ancestor(distance: number) {
+        let environment: Environment | undefined = this;
+        for (let i = 0; i < distance; i++) {
+            if (environment && environment.enclosing) environment = environment.enclosing;
+        }
+
+        return environment;
     }
 
     get(name: Token, ftext: string): TokenValue {
@@ -25,9 +33,22 @@ export class Environment {
         else throw new UndefinedVariable(this.fname, ftext, name);
     }
 
+    getAt(distance: number, name: Token) {
+        let ancestor = this.ancestor(distance);
+        if (ancestor) {
+            let val = ancestor.values.get(name.stringify());
+            return val !== undefined ? val : null;
+        } else return null;
+    }
+
     assign(name: Token, value: TokenValue, ftext: string) {
         if (this.values.has(name.stringify())) this.values.set(name.stringify(), value);
         else if (this.enclosing) this.enclosing.assign(name, value, ftext);
         else throw new UndefinedVariable(this.fname, ftext, name);
+    }
+
+    assignAt(distance: number, name: Token, value: TokenValue) {
+        let ancestor = this.ancestor(distance);
+        if (ancestor) ancestor.values.set(name.stringify(), value);
     }
 }

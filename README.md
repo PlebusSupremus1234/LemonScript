@@ -11,12 +11,14 @@ var b = 2
 print(a * 2 + b) # 4
 
 # Functions
-func isEven(num) {
-    if (num % 2 == 0) return true
-    else return false
+func isPrime(num) {
+    for (var i = 2; i < num; i = i + 1) {
+        if (num % i == 0) return false
+    }
+    return true
 }
 
-print(isEven(12)) # true
+print(isPrime(17)) # true
 ```
 
 A full list on all the functionality of LemonScript and how to use them can be found [here](https://github.com/PlebusSupremus1234/LemonScript/blob/master/documentation.md).
@@ -34,6 +36,7 @@ To start LemonScript, run `ts-node index.ts` in the directory. Then, you can eit
 ## Change Log
 Starting from 12/7 because I forgot to do it before
 ```
+18/7: Added a resolver and fixed many bugs
 17/7: Added Functions and fixed the lexer
 16/7: Added for loop, documentation and fixed lexer
 14/7: Added if statement and while loop and fixed bugs

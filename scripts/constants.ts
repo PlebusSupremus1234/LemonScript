@@ -1,5 +1,5 @@
 const symbols = [
-    "PLUS", "MINUS", "MUL", "DIV", "MOD", "MODEQUAL",
+    "PLUS", "MINUS", "MUL", "DIV", "MOD", "CARET",
     "LPAREN", "RPAREN", "LBRACE", "RBRACE", "LBRACKET", "RBRACKET", "SEMICOLON", "COMMA",
     "BANG", "BANGEQUAL", "EQUAL", "EQUALEQUAL", "LESS", "LESSEQUAL", "GREATER", "GREATEREQUAL",
 ];

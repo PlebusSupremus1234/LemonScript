@@ -12,31 +12,29 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
     fname: string;
     tokens: Token[];
     text: string;
+
+    globals: Environment;
     environment: Environment;
+    locals: Map<Expr, number> = new Map();
 
     constructor(fname: string, text: string, tokens: Token[]) {
         this.fname = fname;
         this.text = text;
         this.tokens = tokens;
-        this.environment = new Environment(this.fname, null);
+
+        this.globals = new Environment(this.fname, null);
+        this.environment = this.globals;
     }
 
     interpret(statements: Stmt[]) {
-        try {
-            for (let statement of statements) this.execute(statement);
-        } catch(e) {
-            console.log(e.stringify());
-        }
+        try { for (let statement of statements) this.execute(statement); }
+        catch(e) { console.log(e.stringify()); }
     }
 
     // Functions
-    execute(stmt: Stmt) {
-        stmt.accept(this);
-    }
-
-    evaluate(expr: Expr): TokenValue {
-        return expr.accept<TokenValue>(this);
-    }
+    execute(stmt: Stmt) { stmt.accept(this); }
+    resolve(expr: Expr, depth: number) { this.locals.set(expr, depth); }
+    evaluate(expr: Expr): TokenValue { return expr.accept<TokenValue>(this); }
     
     isCallable(callee: any): callee is Callable {
         return callee.call && (typeof callee.call === "function") && callee.arity && (typeof callee.arity === "function");
@@ -53,53 +51,14 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
     }
 
     // Visit Expressions
-    visitLiteralExpr(expr: Literal) { return expr.value; }
-    visitGroupingExpr(expr: Grouping) { return this.evaluate(expr.expression); }
-    visitVariableExpr(expr: Variable) { return this.environment.get(expr.name, this.text); }
-
     visitAssignExpr(expr: Assign) {
         let value = this.evaluate(expr.value);
-        this.environment.assign(expr.name, value, this.text);
+        let distance = this.locals.get(expr);
+
+        if (distance !== undefined) this.environment.assignAt(distance, expr.name, value);
+        else this.globals.assign(expr.name, value, this.text);
+
         return value;
-    }
-
-    visitUnaryExpr(expr: Unary) {
-        let rightRaw = this.evaluate(expr.right);
-        let right = rightRaw !== null ? rightRaw.toString() : "null";
-
-        if (expr.operator.type === "BANG") return !rightRaw;
-        if (expr.operator.type === "MINUS") return -(parseFloat(right));
-
-        return null;
-    }
-
-    visitLogicalExpr(expr: Logical) {
-        let left = this.evaluate(expr.left);
-
-        if (expr.operator.type === "OR") {
-            if (left) return left;
-        } else {
-            if (!left) return left;
-        }
-
-        return this.evaluate(expr.right);
-    }
-
-    visitCallExpr(expr: Call, pos: Token) {
-        let callee = this.evaluate(expr.callee);
-        
-        let args = [];
-        for (let arg of expr.args) args.push(this.evaluate(arg));
-
-        let index = this.tokens.findIndex(i => i.line === pos.line && i.rowpos === pos.rowpos);
-        let current = this.tokens[index - 2];
-        if (!this.isCallable(callee)) throw this.functionErr("Can only call functions and classes", "Call", current.line, current.rowpos);
-
-        let fn = callee;
-        current = this.tokens[index];
-        if (args.length !== fn.arity()) throw this.functionErr(`Expected ${fn.arity()} arguments but got ${args.length}`, "Call", current.line, current.rowpos);
-
-        return fn.call(this, args);
     }
 
     visitBinaryExpr(expr: Binary) {
@@ -131,6 +90,9 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
             case "MOD":
                 if (typeof l === "number" && typeof r === "number") return l % r;
                 this.binaryErr("modulate", "from", l, r, o, l);
+            case "CARET":
+                if (typeof l === "number" && typeof r === "number") return l ** r;
+                this.binaryErr("exponentialize", "from", l, r, o, l);
             case "GREATER":
                 if (typeof l === "number" && typeof r === "number") return l > r;
                 this.binaryErr("compare", "with", r, l, o, l);
@@ -150,6 +112,51 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
         return null;
     }
 
+    visitCallExpr(expr: Call) {
+        let callee = this.evaluate(expr.callee);
+        
+        let args = [];
+        for (let arg of expr.args) args.push(this.evaluate(arg));
+
+        let index = this.tokens.findIndex(i => i.line === expr.paren.line && i.rowpos === expr.paren.rowpos);
+        let current = this.tokens[index - 2];
+        if (!this.isCallable(callee)) throw this.functionErr("Can only call functions and classes", "Call", current.line, current.rowpos);
+
+        let fn = callee;
+        current = this.tokens[index];
+        if (args.length !== fn.arity()) throw this.functionErr(`Expected ${fn.arity()} arguments but got ${args.length}`, "Call", current.line, current.rowpos);
+
+        return fn.call(this, args);
+    }
+
+    visitGroupingExpr(expr: Grouping) { return this.evaluate(expr.expression); }
+
+    visitLiteralExpr(expr: Literal) { return expr.value; }
+
+    visitLogicalExpr(expr: Logical) {
+        let left = this.evaluate(expr.left);
+
+        if (expr.operator.type === "OR") {
+            if (left) return left;
+        } else {
+            if (!left) return left;
+        }
+
+        return this.evaluate(expr.right);
+    }
+
+    visitUnaryExpr(expr: Unary) {
+        let rightRaw = this.evaluate(expr.right);
+        let right = rightRaw !== null ? rightRaw.toString() : "null";
+
+        if (expr.operator.type === "BANG") return !rightRaw;
+        if (expr.operator.type === "MINUS") return -(parseFloat(right));
+
+        return null;
+    }
+
+    visitVariableExpr(expr: Variable) { return this.lookupVariable(expr.name, expr); }
+
     // Visit Statements
     visitBlockStmt(stmt: Block) {
         this.executeBlock(stmt.statements, new Environment(this.fname, this.environment));
@@ -161,7 +168,7 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
     }
 
     visitFuncStmt(stmt: Func) {
-        let func = new Function(this.fname, stmt);
+        let func = new Function(this.fname, stmt, this.environment);
         this.environment.define(stmt.name.stringify(), func);
     }
 
@@ -203,5 +210,11 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
         } finally {
             this.environment = previous;
         }
+    }
+
+    lookupVariable(name: Token, expr: Expr) {
+        let distance = this.locals.get(expr);
+        if (distance !== undefined) return this.environment.getAt(distance, name);
+        else return this.globals.get(name, this.text);
     }
 }

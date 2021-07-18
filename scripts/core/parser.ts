@@ -6,26 +6,23 @@ import { TokenType } from "../constants";
 import { SyntaxError, InvalidFunction } from "../structures/errors"
 
 export class Parser {
-    tokens: Token[];
     text: string;
     fname: string;
+    tokens: Token[];
     pos = 0;
 
-    constructor(tokens: Token[], fname: string, text: string) {
-        this.tokens = tokens;
+    constructor(fname: string, text: string, tokens: Token[]) {
         this.fname = fname;
         this.text = text;
+        this.tokens = tokens;
     }
 
     parse(): void | Stmt[] {
         let statements: Stmt[] = [];
         while (!this.isAtEnd()) {
             let statement: Stmt;
-            try {
-                statement = this.declaration();
-            } catch(e) {
-                return console.log(e.stringify());
-            }
+            try { statement = this.declaration(); }
+            catch(e) { return console.log(e.stringify()); }
             statements.push(statement);
         }
         return statements;
@@ -177,7 +174,7 @@ export class Parser {
     comparison(): Expr {
         let expr = this.term();
 
-        while (this.match(["GREATER", "GREATEREQUAL", "LESS", "LESSEQUAL", "MOD"])) {
+        while (this.match(["GREATER", "GREATEREQUAL", "LESS", "LESSEQUAL", "MOD", "CARET"])) {
             let operator = this.tokens[this.pos - 1];
             let right = this.term();
             expr = new Binary(expr, operator, right);
@@ -249,43 +246,9 @@ export class Parser {
     }
 
     // Statements
-    ifStatement(): If {
-        if (!this.check("LPAREN")) this.genSyntaxErr(this.tokens[this.pos - 1], `Expected a '(' after 'if' statement`, 2);
-        let condition = this.expression();
-
-        let thenBranch: Stmt = this.statement();
-        let elseBranch: Stmt | null = null;
-        if (this.match(["ELSE"])) elseBranch = this.statement();
-
-        return new If(condition, thenBranch, elseBranch);
-    }
-
-    printStatement(): Print {
-        if (!this.check("LPAREN")) this.genSyntaxErr(this.tokens[this.pos - 1], `Expected a '(' after 'print' func`, 5);
-        let value = this.expression();
-        return new Print(value);
-    }
-
     expressionStatement(): Expression {
         let expr = this.expression();
         return new Expression(expr);
-    }
-
-    returnStatement(): Return {
-        let keyword = this.tokens[this.pos - 1];
-        let value: Expr | null = null;
-        if (this.tokens[this.pos].line === keyword.line) value = this.expression();
-
-        return new Return(keyword, value);
-    }
-
-    whileStatement(): While {
-        if (!this.check("LPAREN")) this.genSyntaxErr(this.tokens[this.pos - 1], `Expected a '(' after 'while' statement`, 5);
-
-        let condition = this.expression();
-        let body: Stmt = this.statement();
-
-        return new While(condition, body);
     }
 
     forStatement(): Stmt {
@@ -320,6 +283,40 @@ export class Parser {
         if (initializer !== null) body = new Block([initializer, body]);
 
         return body;
+    }
+
+    ifStatement(): If {
+        if (!this.check("LPAREN")) this.genSyntaxErr(this.tokens[this.pos - 1], `Expected a '(' after 'if' statement`, 2);
+        let condition = this.expression();
+
+        let thenBranch: Stmt = this.statement();
+        let elseBranch: Stmt | null = null;
+        if (this.match(["ELSE"])) elseBranch = this.statement();
+
+        return new If(condition, thenBranch, elseBranch);
+    }
+
+    printStatement(): Print {
+        if (!this.check("LPAREN")) this.genSyntaxErr(this.tokens[this.pos - 1], `Expected a '(' after 'print' func`, 5);
+        let value = this.expression();
+        return new Print(value);
+    }
+
+    returnStatement(): Return {
+        let keyword = this.tokens[this.pos - 1];
+        let value: Expr | null = null;
+        if (this.tokens[this.pos].line === keyword.line) value = this.expression();
+
+        return new Return(keyword, value);
+    }
+
+    whileStatement(): While {
+        if (!this.check("LPAREN")) this.genSyntaxErr(this.tokens[this.pos - 1], `Expected a '(' after 'while' statement`, 5);
+
+        let condition = this.expression();
+        let body: Stmt = this.statement();
+
+        return new While(condition, body);
     }
 
     // Other

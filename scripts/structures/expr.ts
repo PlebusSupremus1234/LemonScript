@@ -4,7 +4,7 @@ import { TokenType } from "../constants"
 export interface Visitor<T> {
     visitAssignExpr: (expr: Assign) => T;
     visitBinaryExpr: (expr: Binary) => T;
-    visitCallExpr: (expr: Call, pos: Token) => T;
+    visitCallExpr: (expr: Call) => T;
     visitGroupingExpr: (expr: Grouping) => T;
     visitLiteralExpr: (expr: Literal) => T;
     visitLogicalExpr: (expr: Logical) => T;
@@ -51,7 +51,7 @@ export class Call {
         this.args = args;
     }
 
-    accept<T>(visitor: Visitor<T>): T { return visitor.visitCallExpr(this, this.paren); }
+    accept<T>(visitor: Visitor<T>): T { return visitor.visitCallExpr(this); }
 }
 
 export class Grouping {

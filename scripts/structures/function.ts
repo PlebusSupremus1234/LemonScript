@@ -5,12 +5,14 @@ import { Interpreter } from "../core/interpreter"
 import { ReturnException } from "./return-exception"
 
 export class Function implements Callable {
-    declaration: Func;
     fname: string;
+    declaration: Func;
+    closure: Environment;
 
-    constructor(fname: string, declaration: Func) {
-        this.declaration = declaration;
+    constructor(fname: string, declaration: Func, closure: Environment) {
         this.fname = fname;
+        this.declaration = declaration;
+        this.closure = closure;
     }
 
     arity() {
@@ -18,7 +20,7 @@ export class Function implements Callable {
     }
 
     call(interpreter: Interpreter, args: any[]) {
-        let environment = new Environment(this.fname, interpreter.environment);
+        let environment = new Environment(this.fname, this.closure);
         
         for (let i = 0; i < this.declaration.params.length; i++) environment.define(this.declaration.params[i].stringify(), args[i]);
 
