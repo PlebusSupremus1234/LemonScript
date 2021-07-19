@@ -1,20 +1,20 @@
+import { LSError } from "../structures/errors"
 import { Keywords, TokenType } from "../constants"
-import { SyntaxError } from "../structures/errors"
 import { Token, TokenValue } from "../structures/token";
 
 export class Lexer {
     fname: string;
-    text: string;
+    ftext: string;
     currentChar: string;
     tokens: Token[] = [];
     pos = 0;
     line = 1;
     rowpos = 1;
 
-    constructor(fname: string, text: string) {
-        this.text = text;
+    constructor(fname: string, ftext: string) {
+        this.ftext = ftext;
         this.fname = fname;
-        this.currentChar = this.text[0];
+        this.currentChar = this.ftext[0];
     }
 
     lex(): void | Token[] {
@@ -32,41 +32,33 @@ export class Lexer {
     }
 
     // Functions
-    isAtEnd(): boolean {
-        return this.pos >= this.text.length;
-    }
-
-    peek(): string {
-        return this.text[this.pos + 1];
-    }
-
-    genError(text: string, pos: number): [string, string, number, number, string] {
-        return [this.fname, text, this.line, pos, this.text.split("\n")[this.line - 1]];
-    }
+    peek(): string { return this.ftext[this.pos + 1]; }
+    isAtEnd(): boolean { return this.pos >= this.ftext.length; }
+    genError(text: string, rowpos: number = this.rowpos): void { throw new LSError("Syntax Error", text, this.fname, this.ftext, this.line, rowpos); }
 
     isAlpha(text: string): boolean {
         if (!text) return false;
         return text.match(/^[A-Za-z]+$/) !== null;
     }
     
+    addToken(type: TokenType, value: TokenValue=this.currentChar, rowpos: number=this.rowpos) {
+        this.tokens.push(new Token(type, value, rowpos, this.line));
+        this.advance();
+    }
+
     next(expected: TokenType): boolean {
         let bool = this.peek() === expected;
         if (bool) this.advance();
         return bool;
     }
 
-    addToken(type: TokenType, value: TokenValue=this.currentChar, rowpos: number=this.rowpos) {
-        this.tokens.push(new Token(type, value, rowpos, this.line));
-        this.advance();
-    }
-
     advance() {
         this.pos++;
         this.rowpos++;
-        this.currentChar = this.text[this.pos];
+        this.currentChar = this.ftext[this.pos];
         if (this.currentChar === "\n") {
-            this.rowpos = 0;
             this.line++;
+            this.rowpos = 0;
             this.advance();
         }
     }
@@ -86,6 +78,7 @@ export class Lexer {
             case "{": this.addToken("LBRACE"); break;
             case "}": this.addToken("RBRACE"); break;
             case ";": this.addToken("SEMICOLON"); break;
+            case ".": this.addToken("DOT"); break;
             case ",": this.addToken("COMMA"); break;
             case "!":
                 if (this.next("=")) this.addToken("BANGEQUAL", "!=", this.rowpos - 1);
@@ -111,9 +104,9 @@ export class Lexer {
                 let start = this.pos + 1;
                 let rowstart = this.rowpos;
                 while (this.peek() !== '"' && !this.isAtEnd()) this.advance();
-                if (this.pos >= this.text.length) throw new SyntaxError(...this.genError(`String on line ${this.line} has no ending`, rowstart));
+                if (this.pos >= this.ftext.length) this.genError(`String on line ${this.line} has no ending`, rowstart);
                 this.advance();
-                this.addToken("STRING", this.text.substring(start, this.pos), rowstart);
+                this.addToken("STRING", this.ftext.substring(start, this.pos), rowstart);
                 break;
             default: // Other
                 if (" \t".includes(this.currentChar)) this.advance();
@@ -121,7 +114,7 @@ export class Lexer {
                     let start = this.pos;
                     let rowstart = this.rowpos;
                     while (this.isAlpha(this.peek()) || "0123456789".includes(this.peek())) this.advance();
-                    let text = this.text.substring(start, this.pos + 1);
+                    let text = this.ftext.substring(start, this.pos + 1);
                     if (Keywords.map(i => i.toLowerCase()).includes(text)) this.addToken(text.toUpperCase(), text, rowstart);
                     else this.addToken("IDENTIFIER", text, rowstart);
                 } else if ("0123456789".includes(this.currentChar)) { // Number
@@ -129,19 +122,18 @@ export class Lexer {
                     let f = false;
                     while ("0123456789".includes(this.peek())) this.advance();                
                     if (this.peek() === ".") {
-                        if ("0123456789".includes(this.text[this.pos + 2])) {
+                        if ("0123456789".includes(this.ftext[this.pos + 2])) {
                             this.advance();
                             f = true;
                             while ("0123456789".includes(this.peek())) this.advance();
                         } else {
                             this.advance();
                             if (this.peek()) this.advance();
-                            throw new SyntaxError(...this.genError(`Illegal Character '${this.currentChar}' detected on line ${this.line}`, this.rowpos));
+                            this.genError(`Illegal Character '${this.currentChar}' detected on line ${this.line}`, this.rowpos);
                         }
                     }
-           
-                    this.addToken(f ? "FLOAT" : "INT", parseFloat(this.text.substring(start, this.pos + 1)));
-                } else throw new SyntaxError(...this.genError(`Illegal Character '${this.currentChar}' detected on line ${this.line}`, this.rowpos));
-            }            
+                    this.addToken(f ? "FLOAT" : "INT", parseFloat(this.ftext.substring(start, this.pos + 1)));
+                } else this.genError(`Illegal Character '${this.currentChar}' detected on line ${this.line}`, this.rowpos);
+        }
     }
 }

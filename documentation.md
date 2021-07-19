@@ -34,11 +34,11 @@ These operators return a boolean value (true or false) when comparing 2 expressi
 - `==` - The equals operator checks if 2 values have the same type, and the same value. For example, `"hello" == "hello"` is true, but `"5" == 5` or `23 == 41.2` are not. 
 
 ## Variables
-To declare a variable, you can use the `var` keyword with this syntax:
+In LemonScript, there are two different types of variables, constant, and mutable. A constant variable, as the name describes, is constant and immutable. So the interpreter will throw an error if you try to change the value. The other type is mutable. This variable's value can change types. To declare a variable, you can use the `var` or `const` keyword with this syntax:
 ```js
-var [variable_name] = [variable_value]
+[var | const] [variable_name] = [variable_value]
 ```
-The variable name has to start with an alphabetical letter or an underscore, then can be any character. It cannot contain spaces. 
+The keyword is either `var` or `const`. Var is the mutable, and const is the constant. The variable name has to start with an alphabetical letter or an underscore, then can be any character. It cannot contain spaces. 
 
 The value can be an expression, value, or even another variable. For example a number or a string. Without the value, the variable's value is automatically set to `null`. 
 
@@ -52,6 +52,17 @@ if (a > 3) {
 print(b) # Error
 ```
 The `print(b)` line will throw an error, because the variable b is only avaliable inside the if statement scope. 
+### Constant variable immutability in more detail
+Here is an example of how a constant variable works:
+```js
+const a = 5
+print(a) # 5
+
+const b = a * 2
+print(b) # 10
+
+a = 12 # This will error because a is a constant variable
+```
 
 ## Comments
 A comment is a line of text that is ignored by the interpreter. It's useful for adding notes to describe what's going on, or to remove a bit of code from being executed. In LemonScript, you can comment using `#`. For example:

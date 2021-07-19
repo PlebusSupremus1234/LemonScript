@@ -1,28 +1,29 @@
-import { Visitor as ExprVisitor, Expr, Assign, Binary, Call, Literal, Logical, Grouping, Unary, Variable } from "../structures/expr"
-import { Visitor as StmtVisitor, Stmt, Block, Expression, Func, If, Print, Return, Var, While } from "../structures/stmt"
+import { Visitor as ExprVisitor, Expr, Assign, Binary, Call, Get, Grouping, Literal, Logical, Set, This, Unary, Variable } from "../structures/expr"
+import { Visitor as StmtVisitor, Stmt, Block, Class, Expression, Func, If, Print, Return, Var, While } from "../structures/stmt"
 import { Token, TokenValue } from "../structures/token"
-import { TypeError, InvalidFunction } from "../structures/errors"
+import { LSError } from "../structures/errors"
 import { capitilizeFirstLetter } from "../helper"
 import { Environment } from "../structures/environment"
 import { Callable } from "../structures/callable"
 import { Function } from "../structures/function"
+import { LSClass } from "../structures/class"
+import { Instance } from "../structures/instance"
 import { ReturnException } from "../structures/return-exception"
 
 export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
     fname: string;
+    ftext: string;
     tokens: Token[];
-    text: string;
-
     globals: Environment;
     environment: Environment;
     locals: Map<Expr, number> = new Map();
 
-    constructor(fname: string, text: string, tokens: Token[]) {
+    constructor(fname: string, ftext: string, tokens: Token[]) {
         this.fname = fname;
-        this.text = text;
+        this.ftext = ftext;
         this.tokens = tokens;
 
-        this.globals = new Environment(this.fname, null);
+        this.globals = new Environment(this.fname, this.ftext, null);
         this.environment = this.globals;
     }
 
@@ -41,13 +42,13 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
     }
 
     functionErr(text: string, type: string, line: number, pos: number) {
-        throw new InvalidFunction(this.fname, `${text} on line ${line}`, line, pos, this.text.split("\n")[line - 1], type) ;
+        throw new LSError(`Invalid Function ${type}`, text, this.fname, this.ftext, line, pos);
     }
 
     binaryErr(kw1: string, kw2: string, v1: TokenValue, v2: TokenValue, op: Token, left: TokenValue) {
         let text = `Cannot ${kw1} type ${capitilizeFirstLetter(typeof v2)} ${kw2} type ${capitilizeFirstLetter(typeof v1)} on line ${op.line}`;
         let token = this.tokens[this.tokens.findIndex(i => i.line === op.line && i.rowpos === op.rowpos) + (typeof left !== "number" ? -1 : 1)];
-        throw new TypeError(this.fname, text, op.line, token.rowpos, this.text.split("\n")[op.line - 1]);
+        throw new LSError("Type Error", text, this.fname, this.ftext, token.line, token.rowpos);
     }
 
     // Visit Expressions
@@ -56,7 +57,7 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
         let distance = this.locals.get(expr);
 
         if (distance !== undefined) this.environment.assignAt(distance, expr.name, value);
-        else this.globals.assign(expr.name, value, this.text);
+        else this.globals.assign(expr.name, value, this.ftext);
 
         return value;
     }
@@ -79,8 +80,8 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
                 if (typeof l === "string" && typeof r === "number") {
                     if (r % 1 !== 0) {
                         let text = `Cannot multiply a string by a non-int value on line ${o.line}`;
-                        let token = this.tokens[this.tokens.findIndex(i => i.line === o.line && i.rowpos === o.rowpos) + 1].rowpos;
-                        throw new TypeError(this.fname, text, o.line, token, this.text.split("\n")[o.line - 1]);
+                        let pos = this.tokens[this.tokens.findIndex(i => i.line === o.line && i.rowpos === o.rowpos) + 1].rowpos;
+                        throw new LSError("Type Error", text, this.fname, this.ftext, o.line, pos);
                     }
                     else return Array(r).fill(l).join("");
                 } else this.binaryErr("multiply", "to", l, r, o, l);
@@ -129,6 +130,17 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
         return fn.call(this, args);
     }
 
+    visitGetExpr(expr: Get) {
+        let obj = this.evaluate(expr.obj);
+
+        if (obj instanceof Instance) {
+            return obj.get(expr.name, this.fname, this.ftext);
+        }
+
+        let text = `Only instances have properties on line ${expr.name.line}`;
+        throw new LSError("Type Error", text, this.fname, this.ftext, expr.name.line, expr.name.rowpos);
+    }
+
     visitGroupingExpr(expr: Grouping) { return this.evaluate(expr.expression); }
 
     visitLiteralExpr(expr: Literal) { return expr.value; }
@@ -145,6 +157,21 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
         return this.evaluate(expr.right);
     }
 
+    visitSetExpr(expr: Set) {
+        let obj = this.evaluate(expr.obj);
+
+        if (!(obj instanceof Instance)) {
+            let text = `Only instances have fields on line ${expr.name.line}`;
+            throw new LSError("Type Error", text, this.fname, this.ftext, expr.name.line, expr.name.rowpos);
+        }
+
+        let val = this.evaluate(expr.val);
+        obj.set(expr.name, val);
+        return val;
+    }
+
+    visitThisExpr(expr: This) { return this.lookupVariable(expr.keyword, expr); }
+
     visitUnaryExpr(expr: Unary) {
         let rightRaw = this.evaluate(expr.right);
         let right = rightRaw !== null ? rightRaw.toString() : "null";
@@ -159,8 +186,19 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
 
     // Visit Statements
     visitBlockStmt(stmt: Block) {
-        this.executeBlock(stmt.statements, new Environment(this.fname, this.environment));
+        this.executeBlock(stmt.statements, new Environment(this.fname, this.ftext, this.environment));
         return null;
+    }
+
+    visitClassStmt(stmt: Class) {
+        let methods: Map<string, Function> = new Map();
+        for (let method of stmt.methods) {
+            let func = new Function(this.fname, this.ftext, method, this.environment, method.name.stringify() === "init");
+            methods.set(method.name.stringify(), func);
+        }
+
+        let _class = new LSClass(stmt.name.stringify(), methods);
+        this.environment.define(stmt.name, true,_class, "CLASS");
     }
 
     visitExpressionStmt(stmt: Expression) {
@@ -168,8 +206,8 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
     }
 
     visitFuncStmt(stmt: Func) {
-        let func = new Function(this.fname, stmt, this.environment);
-        this.environment.define(stmt.name.stringify(), func);
+        let func = new Function(this.fname, this.ftext, stmt, this.environment, false);
+        this.environment.define(stmt.name, true, func, "FUNCTION");
     }
 
     visitIfStmt(stmt: If) {
@@ -191,10 +229,10 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
     }
 
     visitVarStmt(stmt: Var) {
-        let value: TokenValue = null;        
+        let value: TokenValue = null;
         if (stmt.initializer !== null) value = this.evaluate(stmt.initializer);
 
-        if (stmt.name.value) this.environment.define(stmt.name.stringify(), value);
+        if (stmt.name.value) this.environment.define(stmt.name, stmt.constant, value, "VAR");
     }
 
     visitWhileStmt(stmt: While) {
@@ -207,14 +245,12 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
         try {
             this.environment = environment;
             for (let statement of statements) this.execute(statement);
-        } finally {
-            this.environment = previous;
-        }
+        } finally { this.environment = previous; }
     }
 
     lookupVariable(name: Token, expr: Expr) {
         let distance = this.locals.get(expr);
         if (distance !== undefined) return this.environment.getAt(distance, name);
-        else return this.globals.get(name, this.text);
+        else return this.globals.get(name, this.ftext);
     }
 }

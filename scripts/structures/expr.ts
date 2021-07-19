@@ -5,14 +5,17 @@ export interface Visitor<T> {
     visitAssignExpr: (expr: Assign) => T;
     visitBinaryExpr: (expr: Binary) => T;
     visitCallExpr: (expr: Call) => T;
+    visitGetExpr: (expr: Get) => T;
     visitGroupingExpr: (expr: Grouping) => T;
     visitLiteralExpr: (expr: Literal) => T;
     visitLogicalExpr: (expr: Logical) => T;
+    visitSetExpr: (expr: Set) => T;
+    visitThisExpr: (expr: This) => T;
     visitUnaryExpr: (expr: Unary) => T;
     visitVariableExpr: (expr: Variable) => T;
 }
 
-export type Expr = Assign | Binary | Call | Grouping | Literal | Logical | Unary | Variable;
+export type Expr = Assign | Binary | Call | Get | Grouping | Literal | Logical | Set | This | Unary | Variable;
 
 export class Assign {
     name: Token;
@@ -54,6 +57,18 @@ export class Call {
     accept<T>(visitor: Visitor<T>): T { return visitor.visitCallExpr(this); }
 }
 
+export class Get {
+    obj: Expr;
+    name: Token;
+
+    constructor(obj: Expr, name: Token) {
+        this.obj = obj;
+        this.name = name;
+    }
+
+    accept<T>(visitor: Visitor<T>): T { return visitor.visitGetExpr(this); }
+}
+
 export class Grouping {
     expression: Expr;
 
@@ -87,7 +102,31 @@ export class Logical {
         this.right = right;
     }
 
-    public accept<T>(visitor: Visitor<T>): T { return visitor.visitLogicalExpr(this); }
+    accept<T>(visitor: Visitor<T>): T { return visitor.visitLogicalExpr(this); }
+}
+
+export class Set {
+    obj: Expr;
+    name: Token;
+    val: Expr;
+
+    constructor(obj: Expr, name: Token, val: Expr) {
+        this.obj = obj;
+        this.name = name;
+        this.val = val;
+    }
+
+    accept<T>(visitor: Visitor<T>): T { return visitor.visitSetExpr(this); }
+}
+
+export class This {
+    keyword: Token;
+
+    constructor(keyword: Token) {
+        this.keyword = keyword;
+    }
+
+    accept<T>(visitor: Visitor<T>): T { return visitor.visitThisExpr(this); }
 }
 
 export class Unary {

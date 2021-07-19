@@ -12,7 +12,7 @@ function input() {
         let inp: undefined | [string, string];
         if (text.toLowerCase().startsWith("ls run")) {
             let file = text.slice(6);
-            if (file.length <= 1) console.log(yellow("Please input a text file to run, for example 'ls run index.txt'"));
+            if (file.length <= 1) console.log(yellow("Please input a text file to run, for example 'ls run index.lemon'"));
             else {
                 if (!existsSync(file.trim())) console.log(red("I couldn't find that file"));
                 else inp = [file.trim(), readFileSync(file.trim()).toString()];

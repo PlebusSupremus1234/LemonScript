@@ -3,6 +3,7 @@ import { Token } from "../structures/token"
 
 export interface Visitor<T> {
     visitBlockStmt: (stmt: Block) => T;
+    visitClassStmt: (stmt: Class) => T;
     visitExpressionStmt: (stmt: Expression) => T;
     visitFuncStmt: (stmt: Func) => T;
     visitIfStmt: (stmt: If) => T;
@@ -12,7 +13,7 @@ export interface Visitor<T> {
     visitWhileStmt: (stmt: While) => T;
 }
 
-export type Stmt = Block | Expression | Func | If | Print | Return | Var | While;
+export type Stmt = Block | Class | Expression | Func | If | Print | Return | Var | While;
 
 export class Block {
     statements: Stmt[];
@@ -22,6 +23,18 @@ export class Block {
     }
 
     accept<T>(visitor: Visitor<T>): T { return visitor.visitBlockStmt(this); }
+}
+
+export class Class {
+    name: Token;
+    methods: Func[];
+
+    constructor(name: Token, methods: Func[]) {
+        this.name = name;
+        this.methods = methods;
+    }
+
+    accept<T>(visitor: Visitor<T>): T { return visitor.visitClassStmt(this); }
 }
 
 export class Expression {
@@ -86,10 +99,12 @@ export class Return {
 
 export class Var {
     name: Token;
+    constant: boolean;
     initializer: Expr | null;
 
-    constructor(name: Token, initializer: Expr | null) {
+    constructor(name: Token, constant: boolean, initializer: Expr | null) {
         this.name = name;
+        this.constant = constant;
         this.initializer = initializer;
     }
 

@@ -1,20 +1,34 @@
 import { Token, TokenValue } from "./token";
-import { Errors, UndefinedVariable } from "./errors";
+import { LSError } from "./errors";
 import { Callable } from "./callable"
 
+type KeyType = "VAR" | "FUNCTION" | "CLASS"
+type VarKey = {
+    constant: boolean;
+    type: KeyType;
+    value: TokenValue | Callable;
+}
+
 export class Environment {
-    values: Map<string, TokenValue | Callable> = new Map();
     fname: string;
-    error: null | Errors = null;
+    ftext: string;
+    values: Map<string, VarKey> = new Map();
+    error: null | LSError = null;
     enclosing: null | Environment = null;
 
-    constructor(fname: string, enclosing: null | Environment) {
+    constructor(fname: string, ftext: string, enclosing: null | Environment) {
         this.fname = fname;
+        this.ftext = ftext;
         if (enclosing) this.enclosing = enclosing;
     }
 
-    define(name: string, value: TokenValue) {
-        this.values.set(name, value);
+    define(name: Token, constant: boolean, value: TokenValue, type: KeyType) {
+        let key = this.values.get(name.stringify());
+        if (key && key.type !== "VAR") {
+            let text = `Cannot redefine ${key.type.toLowerCase()} '${name.stringify()}' on line ${name.line}`;
+            throw new LSError("Invalid Function Declaration", text, this.fname, this.ftext, name.line, name.rowpos);
+        }
+        this.values.set(name.stringify(), { constant, value, type });
     }
 
     ancestor(distance: number) {
@@ -27,28 +41,47 @@ export class Environment {
     }
 
     get(name: Token, ftext: string): TokenValue {
-        let value = this.values.has(name.stringify()) ? this.values.get(name.stringify()) : undefined;
-        if (value !== undefined) return value;
+        let key = this.values.has(name.stringify()) ? this.values.get(name.stringify()) : undefined;
+        if (key && key.value !== undefined) return key.value;
         else if (this.enclosing) return this.enclosing.get(name, ftext);
-        else throw new UndefinedVariable(this.fname, ftext, name);
+        else {
+            let text = `Undefined Variable '${name.stringify()}' detected on line ${name.line}`;
+            throw new LSError("Variable Error", text, this.fname, this.ftext, name.line, name.rowpos);
+        }
     }
 
     getAt(distance: number, name: Token) {
         let ancestor = this.ancestor(distance);
         if (ancestor) {
-            let val = ancestor.values.get(name.stringify());
-            return val !== undefined ? val : null;
+            let key = ancestor.values.get(name.stringify());
+            return key && key.value !== undefined ? key.value : null;
         } else return null;
     }
 
     assign(name: Token, value: TokenValue, ftext: string) {
-        if (this.values.has(name.stringify())) this.values.set(name.stringify(), value);
-        else if (this.enclosing) this.enclosing.assign(name, value, ftext);
-        else throw new UndefinedVariable(this.fname, ftext, name);
+        let key = this.values.get(name.stringify());
+        if (key) {
+            if (key.constant === true) {
+                let text = `Cannot change the value of a constant variable on line ${name.line}`;
+                throw new LSError("Variable Error", text, this.fname, this.ftext, name.line, name.rowpos);
+            } else this.values.set(name.stringify(), { constant: false, value, type: key.type });
+        } else if (this.enclosing) this.enclosing.assign(name, value, ftext);
+        else {
+            let text = `Undefined Variable '${name.stringify()}' detected on line ${name.line}`;
+            throw new LSError("Variable Error", text, this.fname, this.ftext, name.line, name.rowpos);
+        }
     }
 
     assignAt(distance: number, name: Token, value: TokenValue) {
         let ancestor = this.ancestor(distance);
-        if (ancestor) ancestor.values.set(name.stringify(), value);
+        if (ancestor) {
+            let key = ancestor.values.get(name.stringify());
+            if (key) {
+                if (key.constant === true) {
+                    let text = `Cannot change the value of a constant variable on line ${name.line}`;
+                    throw new LSError("Variable Error", text, this.fname, this.ftext, name.line, name.rowpos);
+                } else ancestor.values.set(name.stringify(), { constant: false, value, type: key.type });
+            }
+        }
     }
 }

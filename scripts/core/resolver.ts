@@ -1,23 +1,24 @@
 import { Token } from "../structures/token"
 import { Interpreter } from "./interpreter"
-import { LSError, SyntaxError, UndefinedVariable } from "../structures/errors"
+import { LSError } from "../structures/errors"
 
 type visitable = { accept: (visitor: any) => any; };
-type FunctionType = "NONE" | "FUNCTION";
-import { Visitor as ExprVisitor, Expr, Assign, Binary, Call, Literal, Logical, Grouping, Unary, Variable } from "../structures/expr"
-import { Visitor as StmtVisitor, Stmt, Block, Expression, Func, If, Print, Return, Var, While } from "../structures/stmt"
+type FunctionType = "NONE" | "FUNCTION" | "METHOD";
+type ClassType = "NONE" | "CLASS";
+import { Visitor as ExprVisitor, Expr, Assign, Binary, Call, Get, Grouping, Literal, Logical, Set, This, Unary, Variable } from "../structures/expr"
+import { Visitor as StmtVisitor, Stmt, Block, Class, Expression, Func, If, Print, Return, Var, While } from "../structures/stmt"
 
 export class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
     fname: string;
-    text: string;
-
+    ftext: string;
     interpreter: Interpreter;
     scopes: Array<Map<string, boolean>> = [];
     currentFunction: FunctionType = "NONE";
+    currentClass: ClassType = "NONE";
 
-    constructor(fname: string, text: string, interpreter: Interpreter) {
+    constructor(fname: string, ftext: string, interpreter: Interpreter) {
         this.fname = fname;
-        this.text = text;
+        this.ftext = ftext;
         this.interpreter = interpreter;
     }
 
@@ -38,7 +39,7 @@ export class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
         if (this.scopes.length === 0) return;
         this.scopes[this.scopes.length - 1].set(name.stringify(), true);
     }
-    //make a common func for these
+    
     declare(name: Token) {
         if (this.scopes.length === 0) return;
         this.scopes[this.scopes.length - 1].set(name.stringify(), false);
@@ -54,11 +55,11 @@ export class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
     }
 
     resolveFunction(func: Func, type: FunctionType) {
-        const enclosingFunction = this.currentFunction;
+        let enclosingFunction = this.currentFunction;
         this.currentFunction = type;
 
         this.beginScope();
-        for (const param of func.params) {
+        for (let param of func.params) {
             this.declare(param);
             this.define(param);
         }
@@ -84,6 +85,8 @@ export class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
         for (let s of expr.args) this.resolve(s);
     }
 
+    visitGetExpr(expr: Get) { this.resolve(expr.obj); }
+
     visitGroupingExpr(expr: Grouping) { this.resolve(expr.expression); }
 
     visitLiteralExpr() {}
@@ -93,13 +96,22 @@ export class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
         this.resolve(expr.right);
     }
 
+    visitSetExpr(expr: Set) {
+        this.resolve(expr.val);
+        this.resolve(expr.obj);
+    }
+
+    visitThisExpr(expr: This) {
+        if (this.currentClass !== "NONE") this.resolveLocal(expr, expr.keyword);
+    }
+
     visitUnaryExpr(expr: Unary) { this.resolve(expr.right); }
 
     visitVariableExpr(expr: Variable) {
         let length = this.scopes.length;
         if ((length !== 0) && this.scopes[length - 1].get(expr.name.stringify()) === false) {
             let text = `Cannot read local variable in its own initializer on line ${expr.name.line}`;
-            throw new UndefinedVariable(this.fname, this.text, expr.name, text);
+            throw new LSError("Undefined Variable", text, this.fname, this.ftext, expr.name.line, expr.name.rowpos);
         }
 
         this.resolveLocal(expr, expr.name);
@@ -110,6 +122,25 @@ export class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
         this.beginScope();
         this.resolve(...stmt.statements);
         this.endScope();
+    }
+
+    visitClassStmt(stmt: Class) {
+        let enclosing = this.currentClass;
+        this.currentClass = "CLASS";
+
+        this.declare(stmt.name);
+        this.define(stmt.name);
+
+        this.beginScope();
+        this.scopes[this.scopes.length - 1].set("this", true);
+
+        for (let method of stmt.methods) {
+            let declaration: FunctionType = "METHOD";
+            this.resolveFunction(method, declaration);
+        }
+
+        this.endScope();
+        this.currentClass = enclosing;
     }
 
     visitExpressionStmt(stmt: Expression) { this.resolve(stmt.expression); }
@@ -132,7 +163,7 @@ export class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
     visitReturnStmt(stmt: Return) {
         let t = stmt.keyword;
         let text = `Cannot return in top-level code on line ${t.line}`;
-        if (this.currentFunction === "NONE") throw new SyntaxError(this.fname, text, t.line, t.rowpos, this.text.split("\n")[t.line - 1]);
+        if (this.currentFunction === "NONE") throw new LSError("Invalid Return", text, this.fname, this.ftext, t.line, t.rowpos);
         if (stmt.value !== null) this.resolve(stmt.value);
     }
 
