@@ -3,9 +3,9 @@ import { Interpreter } from "./interpreter"
 import { LSError } from "../structures/errors"
 
 type visitable = { accept: (visitor: any) => any; };
-type FunctionType = "NONE" | "FUNCTION" | "METHOD";
+type FunctionType = "NONE" | "FUNCTION" | "METHOD" | "INITIALIZER";
 type ClassType = "NONE" | "CLASS";
-import { Visitor as ExprVisitor, Expr, Assign, Binary, Call, Get, Grouping, Literal, Logical, Set, This, Unary, Variable } from "../structures/expr"
+import { Visitor as ExprVisitor, Expr, Assign, Binary, Call, Get, Grouping, Literal, Logical, Self, Set, Unary, Variable } from "../structures/expr"
 import { Visitor as StmtVisitor, Stmt, Block, Class, Expression, Func, If, Print, Return, Var, While } from "../structures/stmt"
 
 export class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
@@ -96,13 +96,13 @@ export class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
         this.resolve(expr.right);
     }
 
+    visitSelfExpr(expr: Self) {
+        if (this.currentClass !== "NONE") this.resolveLocal(expr, expr.keyword);
+    }
+
     visitSetExpr(expr: Set) {
         this.resolve(expr.val);
         this.resolve(expr.obj);
-    }
-
-    visitThisExpr(expr: This) {
-        if (this.currentClass !== "NONE") this.resolveLocal(expr, expr.keyword);
     }
 
     visitUnaryExpr(expr: Unary) { this.resolve(expr.right); }
@@ -111,7 +111,7 @@ export class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
         let length = this.scopes.length;
         if ((length !== 0) && this.scopes[length - 1].get(expr.name.stringify()) === false) {
             let text = `Cannot read local variable in its own initializer on line ${expr.name.line}`;
-            throw new LSError("Undefined Variable", text, this.fname, this.ftext, expr.name.line, expr.name.rowpos);
+            throw new LSError("Variable Error", text, this.fname, this.ftext, expr.name.line, expr.name.rowpos);
         }
 
         this.resolveLocal(expr, expr.name);
@@ -132,10 +132,11 @@ export class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
         this.define(stmt.name);
 
         this.beginScope();
-        this.scopes[this.scopes.length - 1].set("this", true);
+        this.scopes[this.scopes.length - 1].set("self", true);
 
         for (let method of stmt.methods) {
             let declaration: FunctionType = "METHOD";
+            if (method.name.stringify() === "init") declaration = "INITIALIZER";
             this.resolveFunction(method, declaration);
         }
 
@@ -164,7 +165,13 @@ export class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
         let t = stmt.keyword;
         let text = `Cannot return in top-level code on line ${t.line}`;
         if (this.currentFunction === "NONE") throw new LSError("Invalid Return", text, this.fname, this.ftext, t.line, t.rowpos);
-        if (stmt.value !== null) this.resolve(stmt.value);
+        if (stmt.value !== null) {
+            if (this.currentFunction === "INITIALIZER") {
+                text = `Cannot return in an initializer function`;
+                throw new LSError("Invalid Function Declaration", text, this.fname, this.ftext, t.line, t.rowpos);
+            }
+            this.resolve(stmt.value);
+        }
     }
 
     visitVarStmt(stmt: Var) {

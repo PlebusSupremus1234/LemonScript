@@ -9,13 +9,13 @@ export interface Visitor<T> {
     visitGroupingExpr: (expr: Grouping) => T;
     visitLiteralExpr: (expr: Literal) => T;
     visitLogicalExpr: (expr: Logical) => T;
+    visitSelfExpr: (expr: Self) => T;
     visitSetExpr: (expr: Set) => T;
-    visitThisExpr: (expr: This) => T;
     visitUnaryExpr: (expr: Unary) => T;
     visitVariableExpr: (expr: Variable) => T;
 }
 
-export type Expr = Assign | Binary | Call | Get | Grouping | Literal | Logical | Set | This | Unary | Variable;
+export type Expr = Assign | Binary | Call | Get | Grouping | Literal | Logical | Self | Set | Unary | Variable;
 
 export class Assign {
     name: Token;
@@ -105,6 +105,16 @@ export class Logical {
     accept<T>(visitor: Visitor<T>): T { return visitor.visitLogicalExpr(this); }
 }
 
+export class Self {
+    keyword: Token;
+
+    constructor(keyword: Token) {
+        this.keyword = keyword;
+    }
+
+    accept<T>(visitor: Visitor<T>): T { return visitor.visitSelfExpr(this); }
+}
+
 export class Set {
     obj: Expr;
     name: Token;
@@ -117,16 +127,6 @@ export class Set {
     }
 
     accept<T>(visitor: Visitor<T>): T { return visitor.visitSetExpr(this); }
-}
-
-export class This {
-    keyword: Token;
-
-    constructor(keyword: Token) {
-        this.keyword = keyword;
-    }
-
-    accept<T>(visitor: Visitor<T>): T { return visitor.visitThisExpr(this); }
 }
 
 export class Unary {

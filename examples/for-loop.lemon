@@ -1,0 +1,6 @@
+for (var i = 0; i < 10; i = i + 1) print(i)
+
+print("--------------------")
+
+var b = 5
+for (; b < 10; b = b + 2) print(b)

@@ -1,0 +1,22 @@
+# FIZZBUZZ
+# FizzBuzz is a counting game, but when a number is a multiple of 3, you say FIZZ instead,
+# and if the number is a multiple of 5, you say BUZZ, and if its a multiple of both, you say FIZZBUZZ
+
+# It is a very simple programming task, used in software developer job interviews, to determine whether the job candidate can actually write code.
+
+func FizzBuzz(nums) {
+    for (var i = 1; i <= nums; i = i + 1) {
+        var fizz = i % 3 == 0
+        var buzz = i % 5 == 0
+        if (fizz and buzz) print("FIZZBUZZ")
+        else {
+            if (fizz) print("FIZZ")
+            else {
+                if (buzz) print("BUZZ")
+                else print(i)
+            }
+        }
+    }
+}
+
+FizzBuzz(20)

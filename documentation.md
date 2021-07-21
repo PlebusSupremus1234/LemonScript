@@ -9,6 +9,7 @@
 - [While Loop](https://github.com/PlebusSupremus1234/LemonScript/blob/master/documentation.md#while-loop)
 - [For Loop](https://github.com/PlebusSupremus1234/LemonScript/blob/master/documentation.md#for-loop)
 - [Functions](https://github.com/PlebusSupremus1234/LemonScript/blob/master/documentation.md#functions)
+- [Classes](https://github.com/PlebusSupremus1234/LemonScript/blob/master/documentation.md#classes)
 
 ## Binary Operators
 In LemonScript, there are a variety of operations such as `+`, `-`, `*` and `/`. Here is a list of all of them and what they do:
@@ -154,3 +155,54 @@ print(add(14, 6.54))
 print(add(123, -11))
 ```
 This is a basic function that takes 2 inputs, then returns the sum. Returning a value stops the fuction, and returns the value in the statement. This means that proceeding code after the statement will not execute. If there is no expression or no return statement, the function automatically returns `null`. 
+
+## Classes
+A class is an `object` that has properties and methods (its own functions). Here is the syntax for creating a class:
+```js
+class [class name] {
+    init([args]) { [code] } # Optional
+
+    [methods]
+}
+```
+Firstly, you can declare the class name to an valid indentifier/variable name. Then, if you want, you can add a `init` function. This function will be called when the class is created. It's useful for assigning properties to the class. For example, here is a class example using all of those concepts:
+```js
+class Rectangle {
+    init(x, y, width, height) {
+        self.x = x
+        self.y = y
+        self.width = width
+        self.height = height
+    }
+
+    getArea() {
+        return self.width * self.height
+    }
+}
+
+var rectangle1 = Rectangle(50, 20, 100, 120)
+print(rectangle1.getArea()) # 12000
+```
+The self is a variable that is avaliable to any function inside the class. You can assign properties to it. Lets dive into how thise code works. Firstly, this class has an `init` function. The `init` function also has arguments. This means that when declaring a variable to this class, you need to pass in the 4 arguments. As you can see, it is done when declaring the `rectangle1` variable. Then, the `init` function goes and sets the `x`, `y`, `width`, and `height` properties. After that, theres a `getArea` method, which returns the `width` * `height`.
+
+The init function isn't the only place where you can set and change the self variable. You can also actually run the init function again. Heres an example showing that:
+```js
+class Cake {
+    init() {
+        self.flavor = "Chocolate"
+    }
+
+    taste() {
+        print("The " + self.flavor + " cake is delicious!")
+
+        self.flavor = "Red Velvet" # Setting flavor to Red Velvet
+        print("The " + self.flavor + " cake is delicious!")
+
+        self.init() # Resetting the flavor by rerunning the init func
+        print("The " + self.flavor + " cake is delicious!")
+    }
+}
+
+var cake = Cake()
+cake.taste()
+```

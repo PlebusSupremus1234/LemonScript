@@ -1,5 +1,0 @@
-# Invalid Assignment Test ;)
-
-var a = 5 + 7
-a + 2 = 69 # should error
-print(a)

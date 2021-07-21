@@ -1,0 +1,15 @@
+class Rectangle {
+    init(x, y, width, height) {
+        self.x = x
+        self.y = y
+        self.width = width
+        self.height = height
+    }
+
+    getArea() {
+        return self.width * self.height
+    }
+}
+
+var rectangle1 = Rectangle(50, 20, 100, 120)
+print(rectangle1.getArea()) # 12000

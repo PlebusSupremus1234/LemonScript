@@ -1,7 +1,7 @@
 import { Lexer } from "./core/lexer"
 import { Parser } from "./core/parser"
 import { Resolver } from "./core/resolver"
-import { Interpreter } from "./core/interpreter"    
+import { Interpreter } from "./core/interpreter"
 
 export function run(fname: string, text: string) {
     let lexer = new Lexer(fname, text);

@@ -1,8 +1,8 @@
 import { Interpreter } from "../core/interpreter";
-import { TokenValue } from "./token";
+import { Token, TokenValue } from "./token";
 
 export interface Callable {
     arity: () => number;
-    call: (interpreter: Interpreter, args: TokenValue[]) => TokenValue;
+    call: (interpreter: Interpreter, token: Token, args: TokenValue[]) => TokenValue;
     stringify: () => string;
 }

@@ -34,15 +34,18 @@ export class Lexer {
     // Functions
     peek(): string { return this.ftext[this.pos + 1]; }
     isAtEnd(): boolean { return this.pos >= this.ftext.length; }
-    genError(text: string, rowpos: number = this.rowpos): void { throw new LSError("Syntax Error", text, this.fname, this.ftext, this.line, rowpos); }
+
+    genError(text: string, rowpos: number = this.rowpos, line: number=this.line): void {
+        throw new LSError("Syntax Error", text, this.fname, this.ftext, line, rowpos);
+    }
 
     isAlpha(text: string): boolean {
         if (!text) return false;
         return text.match(/^[A-Za-z]+$/) !== null;
     }
     
-    addToken(type: TokenType, value: TokenValue=this.currentChar, rowpos: number=this.rowpos) {
-        this.tokens.push(new Token(type, value, rowpos, this.line));
+    addToken(type: TokenType, value: TokenValue=this.currentChar, rowpos: number=this.rowpos, line: number=this.line) {
+        this.tokens.push(new Token(type, value, rowpos, line));
         this.advance();
     }
 
@@ -103,10 +106,11 @@ export class Lexer {
             case '"': // String
                 let start = this.pos + 1;
                 let rowstart = this.rowpos;
+                let linestart = this.line;
                 while (this.peek() !== '"' && !this.isAtEnd()) this.advance();
-                if (this.pos >= this.ftext.length) this.genError(`String on line ${this.line} has no ending`, rowstart);
+                if (this.pos >= this.ftext.length || this.line !== linestart) this.genError(`String on line ${linestart} has no ending`, rowstart, linestart);
                 this.advance();
-                this.addToken("STRING", this.ftext.substring(start, this.pos), rowstart);
+                this.addToken("STRING", this.ftext.substring(start, this.pos), rowstart, linestart);
                 break;
             default: // Other
                 if (" \t".includes(this.currentChar)) this.advance();

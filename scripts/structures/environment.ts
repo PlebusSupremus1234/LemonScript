@@ -45,15 +45,15 @@ export class Environment {
         if (key && key.value !== undefined) return key.value;
         else if (this.enclosing) return this.enclosing.get(name, ftext);
         else {
-            let text = `Undefined Variable '${name.stringify()}' detected on line ${name.line}`;
+            let text = `Undefined variable '${name.stringify()}' detected on line ${name.line}`;
             throw new LSError("Variable Error", text, this.fname, this.ftext, name.line, name.rowpos);
         }
     }
 
-    getAt(distance: number, name: Token) {
+    getAt(distance: number, name: string, token?: Token) {
         let ancestor = this.ancestor(distance);
         if (ancestor) {
-            let key = ancestor.values.get(name.stringify());
+            let key = ancestor.values.get(token ? token.stringify() : name);
             return key && key.value !== undefined ? key.value : null;
         } else return null;
     }
@@ -67,7 +67,7 @@ export class Environment {
             } else this.values.set(name.stringify(), { constant: false, value, type: key.type });
         } else if (this.enclosing) this.enclosing.assign(name, value, ftext);
         else {
-            let text = `Undefined Variable '${name.stringify()}' detected on line ${name.line}`;
+            let text = `Undefined variable '${name.stringify()}' detected on line ${name.line}`;
             throw new LSError("Variable Error", text, this.fname, this.ftext, name.line, name.rowpos);
         }
     }
@@ -81,6 +81,9 @@ export class Environment {
                     let text = `Cannot change the value of a constant variable on line ${name.line}`;
                     throw new LSError("Variable Error", text, this.fname, this.ftext, name.line, name.rowpos);
                 } else ancestor.values.set(name.stringify(), { constant: false, value, type: key.type });
+            } else {
+                let text = `Undefined variable '${name.stringify()}' detected on line ${name.line}`;
+                throw new LSError("Variable Error", text, this.fname, this.ftext, name.line, name.rowpos);
             }
         }
     }

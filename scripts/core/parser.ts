@@ -1,4 +1,4 @@
-import { Expr, Assign, Binary, Call, Get, Grouping, Literal, Logical, Set, This, Unary, Variable } from "../structures/expr"
+import { Expr, Assign, Binary, Call, Get, Grouping, Literal, Logical, Self, Set, Unary, Variable } from "../structures/expr"
 import { Stmt, Block, Class, Expression, Func, If, Print, Return, Var, While } from "../structures/stmt"
 
 import { Token } from "../structures/token";
@@ -261,7 +261,7 @@ export class Parser {
         
         if (this.match(["INT", "FLOAT", "STRING", "NULL"])) return new Literal(this.tokens[this.pos - 1].type, this.tokens[this.pos - 1].value);
 
-        if (this.match(["THIS"])) return new This(this.tokens[this.pos - 1]);
+        if (this.match(["SELF"])) return new Self(this.tokens[this.pos - 1]);
         if (this.match(["IDENTIFIER"])) return new Variable(this.tokens[this.pos - 1]);
 
         let lparenpos = this.pos;

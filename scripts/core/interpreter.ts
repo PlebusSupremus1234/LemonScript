@@ -1,4 +1,4 @@
-import { Visitor as ExprVisitor, Expr, Assign, Binary, Call, Get, Grouping, Literal, Logical, Set, This, Unary, Variable } from "../structures/expr"
+import { Visitor as ExprVisitor, Expr, Assign, Binary, Call, Get, Grouping, Literal, Logical, Self, Set, Unary, Variable } from "../structures/expr"
 import { Visitor as StmtVisitor, Stmt, Block, Class, Expression, Func, If, Print, Return, Var, While } from "../structures/stmt"
 import { Token, TokenValue } from "../structures/token"
 import { LSError } from "../structures/errors"
@@ -28,8 +28,10 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
     }
 
     interpret(statements: Stmt[]) {
-        try { for (let statement of statements) this.execute(statement); }
-        catch(e) { console.log(e.stringify()); }
+        for (let statement of statements) {
+            try { this.execute(statement); }
+            catch(e) { return console.log(e.stringify()); }
+        }
     }
 
     // Functions
@@ -127,7 +129,7 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
         current = this.tokens[index];
         if (args.length !== fn.arity()) throw this.functionErr(`Expected ${fn.arity()} arguments but got ${args.length}`, "Call", current.line, current.rowpos);
 
-        return fn.call(this, args);
+        return fn.call(this, current, args);
     }
 
     visitGetExpr(expr: Get) {
@@ -157,6 +159,8 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
         return this.evaluate(expr.right);
     }
 
+    visitSelfExpr(expr: Self) { return this.lookupVariable(expr.keyword, expr); }
+    
     visitSetExpr(expr: Set) {
         let obj = this.evaluate(expr.obj);
 
@@ -169,8 +173,6 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
         obj.set(expr.name, val);
         return val;
     }
-
-    visitThisExpr(expr: This) { return this.lookupVariable(expr.keyword, expr); }
 
     visitUnaryExpr(expr: Unary) {
         let rightRaw = this.evaluate(expr.right);
@@ -194,11 +196,12 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
         let methods: Map<string, Function> = new Map();
         for (let method of stmt.methods) {
             let func = new Function(this.fname, this.ftext, method, this.environment, method.name.stringify() === "init");
+            if (methods.has(method.name.stringify())) {console.log("yes")}
             methods.set(method.name.stringify(), func);
         }
 
         let _class = new LSClass(stmt.name.stringify(), methods);
-        this.environment.define(stmt.name, true,_class, "CLASS");
+        this.environment.define(stmt.name, true, _class, "CLASS");
     }
 
     visitExpressionStmt(stmt: Expression) {
@@ -242,15 +245,14 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
     // Other
     executeBlock(statements: Stmt[], environment: Environment) {
         let previous = this.environment;
-        try {
-            this.environment = environment;
-            for (let statement of statements) this.execute(statement);
-        } finally { this.environment = previous; }
+        this.environment = environment;
+        try { for (let statement of statements) this.execute(statement); }
+        finally { this.environment = previous; }
     }
 
     lookupVariable(name: Token, expr: Expr) {
         let distance = this.locals.get(expr);
-        if (distance !== undefined) return this.environment.getAt(distance, name);
+        if (distance !== undefined) return this.environment.getAt(distance, "", name);
         else return this.globals.get(name, this.ftext);
     }
 }
