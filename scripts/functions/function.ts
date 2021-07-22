@@ -1,10 +1,10 @@
 import { Callable } from "./callable"
-import { Func } from "./stmt"
-import { Token } from "./token"
 import { Instance } from "./instance"
-import { Environment } from "./environment"
+import { Func } from "../structures/stmt"
+import { Token } from "../structures/token"
 import { Interpreter } from "../core/interpreter"
 import { ReturnException } from "./return-exception"
+import { Environment } from "../structures/environment"
 
 export class Function implements Callable {
     fname: string;

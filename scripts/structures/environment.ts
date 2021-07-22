@@ -1,6 +1,7 @@
-import { Token, TokenValue } from "./token";
 import { LSError } from "./errors";
-import { Callable } from "./callable"
+import { Token, TokenValue } from "./token";
+import { Callable } from "../functions/callable"
+import { capitilizeFirstLetter } from "../helper"
 
 type KeyType = "VAR" | "FUNCTION" | "CLASS"
 type VarKey = {
@@ -12,9 +13,9 @@ type VarKey = {
 export class Environment {
     fname: string;
     ftext: string;
-    values: Map<string, VarKey> = new Map();
     error: null | LSError = null;
     enclosing: null | Environment = null;
+    values: Map<string, VarKey> = new Map();
 
     constructor(fname: string, ftext: string, enclosing: null | Environment) {
         this.fname = fname;
@@ -26,7 +27,7 @@ export class Environment {
         let key = this.values.get(name.stringify());
         if (key && key.type !== "VAR") {
             let text = `Cannot redefine ${key.type.toLowerCase()} '${name.stringify()}' on line ${name.line}`;
-            throw new LSError("Invalid Function Declaration", text, this.fname, this.ftext, name.line, name.rowpos);
+            throw new LSError(`Invalid ${capitilizeFirstLetter(key.type.toLowerCase())} Declaration`, text, this.fname, this.ftext, name.line, name.rowpos);
         }
         this.values.set(name.stringify(), { constant, value, type });
     }
@@ -60,7 +61,7 @@ export class Environment {
 
     assign(name: Token, value: TokenValue, ftext: string) {
         let key = this.values.get(name.stringify());
-        if (key) {
+            if (key) {
             if (key.constant === true) {
                 let text = `Cannot change the value of a constant variable on line ${name.line}`;
                 throw new LSError("Variable Error", text, this.fname, this.ftext, name.line, name.rowpos);

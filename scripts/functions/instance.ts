@@ -1,6 +1,6 @@
 import { LSClass } from "./class";
-import { Token, TokenValue } from "./token";
-import { LSError } from "./errors"
+import { LSError } from "../structures/errors"
+import { Token, TokenValue } from "../structures/token";
 
 export class Instance {
     _class: LSClass;

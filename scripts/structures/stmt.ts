@@ -1,4 +1,4 @@
-import { Expr } from "./expr";
+import { Expr, Variable } from "./expr";
 import { Token } from "../structures/token"
 
 export interface Visitor<T> {
@@ -28,10 +28,12 @@ export class Block {
 export class Class {
     name: Token;
     methods: Func[];
+    superclass: null | Variable;
 
-    constructor(name: Token, methods: Func[]) {
+    constructor(name: Token, superclass: null | Variable, methods: Func[]) {
         this.name = name;
         this.methods = methods;
+        this.superclass = superclass;
     }
 
     accept<T>(visitor: Visitor<T>): T { return visitor.visitClassStmt(this); }

@@ -206,3 +206,26 @@ class Cake {
 var cake = Cake()
 cake.taste()
 ```
+
+### Subclasses and Superclasses
+A subclass is a class that inherits the functions from another class. You can do this using the `<` symbol. Here is an example:
+```js
+class Rectangle {
+    init(width, height) {
+        self.width = width
+        self.height = height
+    }
+
+    area() { return self.width * self.height }
+}
+
+class Square < Rectangle { # Creating a subclass of Rectangle
+    init(length) {
+        super.init(length, length)
+    }
+}
+
+var square = Square(30)
+print(square.area()) # The class inherits the method from its superclass
+```
+Here we are creating a subclass of `Rectangle` called `Square`. The square class's init func only takes one argument, unlike the rectangle one. But then it calls `super.init(length, length)`. This is calling the init function of the rectangle class, initializing the self variables. 

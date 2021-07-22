@@ -1,15 +1,19 @@
-class Rectangle {
-    init(x, y, width, height) {
+const pi = 3.1415926
+
+class Circle {
+    init(x, y, radius) {
         self.x = x
         self.y = y
-        self.width = width
-        self.height = height
+        self.radius = radius
     }
 
-    getArea() {
-        return self.width * self.height
-    }
+    area() { return pi * self.radius ^ 2 }
+    diameter() { return 2 * self.radius }
+    circumference() { return 2 * pi * self.radius }
 }
 
-var rectangle1 = Rectangle(50, 20, 100, 120)
-print(rectangle1.getArea()) # 12000
+const circle = Circle(50, 50, 20)
+
+print("Area: " + circle.area())
+print("Diameter: " + circle.diameter())
+print("Circumference: " + circle.circumference())

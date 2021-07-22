@@ -1,16 +1,18 @@
 import { Callable } from "./callable"
 import { Instance } from "./instance"
 import { Function } from "./function"
-import { Token, TokenValue } from "./token"
 import { Interpreter } from "../core/interpreter"
+import { Token, TokenValue } from "../structures/token"
 
 export class LSClass implements Callable {
     name: string;
+    superclass: LSClass | null;
     methods: Map<string, Function>;
 
-    constructor(name: string, methods: Map<string, Function>) {
+    constructor(name: string, superclass: LSClass | null, methods: Map<string, Function>) {
         this.name = name;
         this.methods = methods;
+        this.superclass = superclass;
     }
 
     stringify() { return this.name; }
@@ -27,11 +29,14 @@ export class LSClass implements Callable {
         return instance;
     }
 
-    findMethod(name: string) {
+    findMethod(name: string): null | Function {
         if (this.methods.has(name)) {
             let method = this.methods.get(name);
             return method === undefined ? null : method;
         }
+
+        if (this.superclass !== null) return this.superclass.findMethod(name);
+
         return null;
     }
 }

@@ -1,7 +1,7 @@
 # LemonScript
 A programming language made with TypeScript.
 
-LemonScript is still in heavy development, and is currently up to: Class Inheritance
+LemonScript is still in heavy development, and a todo list can be found [here](https://github.com/PlebusSupremus1234/LemonScript/projects/1)
 
 Here is a preview of LemonScript:
 ```js
@@ -36,7 +36,7 @@ To start LemonScript, run `ts-node index.ts` in the directory. Then, you can eit
 ## Change Log
 Starting from 12/7 because I forgot to do it before
 ```
-21/7: Added init function for classes
+21/7: Added init function for classes and fixed order of op
 20/7: Function error fixed
 19/7: Classes
 18/7: Added a resolver, constant variables and fixed many bugs

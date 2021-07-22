@@ -11,11 +11,12 @@ export interface Visitor<T> {
     visitLogicalExpr: (expr: Logical) => T;
     visitSelfExpr: (expr: Self) => T;
     visitSetExpr: (expr: Set) => T;
+    visitSuperExpr: (expr: Super) => T;
     visitUnaryExpr: (expr: Unary) => T;
     visitVariableExpr: (expr: Variable) => T;
 }
 
-export type Expr = Assign | Binary | Call | Get | Grouping | Literal | Logical | Self | Set | Unary | Variable;
+export type Expr = Assign | Binary | Call | Get | Grouping | Literal | Logical | Self | Set | Super | Unary | Variable;
 
 export class Assign {
     name: Token;
@@ -127,6 +128,18 @@ export class Set {
     }
 
     accept<T>(visitor: Visitor<T>): T { return visitor.visitSetExpr(this); }
+}
+
+export class Super {
+    keyword: Token;
+    method: Token;
+
+    constructor(keyword: Token, method: Token) {
+        this.keyword = keyword;
+        this.method = method;
+    }
+
+    accept<T>(visitor: Visitor<T>): T { return visitor.visitSuperExpr(this); }
 }
 
 export class Unary {

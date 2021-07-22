@@ -1,5 +1,5 @@
 import { Interpreter } from "../core/interpreter";
-import { Token, TokenValue } from "./token";
+import { Token, TokenValue } from "../structures/token";
 
 export interface Callable {
     arity: () => number;

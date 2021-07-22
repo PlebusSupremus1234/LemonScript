@@ -2,19 +2,20 @@ import { Token } from "../structures/token"
 import { Interpreter } from "./interpreter"
 import { LSError } from "../structures/errors"
 
+type ClassType = "NONE" | "CLASS" | "SUBCLASS";
 type visitable = { accept: (visitor: any) => any; };
 type FunctionType = "NONE" | "FUNCTION" | "METHOD" | "INITIALIZER";
-type ClassType = "NONE" | "CLASS";
-import { Visitor as ExprVisitor, Expr, Assign, Binary, Call, Get, Grouping, Literal, Logical, Self, Set, Unary, Variable } from "../structures/expr"
+
 import { Visitor as StmtVisitor, Stmt, Block, Class, Expression, Func, If, Print, Return, Var, While } from "../structures/stmt"
+import { Visitor as ExprVisitor, Expr, Assign, Binary, Call, Get, Grouping, Literal, Logical, Self, Set, Super, Unary, Variable } from "../structures/expr"
 
 export class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
     fname: string;
     ftext: string;
     interpreter: Interpreter;
-    scopes: Array<Map<string, boolean>> = [];
-    currentFunction: FunctionType = "NONE";
     currentClass: ClassType = "NONE";
+    currentFunction: FunctionType = "NONE";
+    scopes: Array<Map<string, boolean>> = [];
 
     constructor(fname: string, ftext: string, interpreter: Interpreter) {
         this.fname = fname;
@@ -105,6 +106,19 @@ export class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
         this.resolve(expr.obj);
     }
 
+    visitSuperExpr(expr: Super) {
+        if (this.currentClass === "NONE") {
+            let text = `Cannot use 'super' outside of a class on line ${expr.keyword.line}`;
+            throw new LSError("Syntax Error", text, this.fname, this.ftext, expr.keyword.line, expr.keyword.rowpos);
+        } else if (this.currentClass !== "SUBCLASS") {
+            let text = `Cannot use 'super' in a class with no superclasses on line ${expr.keyword.line}`;
+            throw new LSError("Class Error", text, this.fname, this.ftext, expr.keyword.line, expr.keyword.rowpos);
+        }
+
+        this.resolveLocal(expr, expr.keyword);
+        return null;
+    }
+
     visitUnaryExpr(expr: Unary) { this.resolve(expr.right); }
 
     visitVariableExpr(expr: Variable) {
@@ -131,6 +145,19 @@ export class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
         this.declare(stmt.name);
         this.define(stmt.name);
 
+        if (stmt.superclass !== null && stmt.name.stringify() === stmt.superclass.name.stringify()) {
+            let text = `A class cannot inherit from itself on line ${stmt.name.line}`;
+            throw new LSError("Class Error", text, this.fname, this.ftext, stmt.name.line, stmt.name.rowpos);
+        }
+        if (stmt.superclass !== null) {
+            this.currentClass = 'SUBCLASS';
+            this.resolve(stmt.superclass);
+        }
+        if (stmt.superclass !== null) {
+            this.beginScope();
+            this.scopes[this.scopes.length - 1].set("super", true);
+        }
+
         this.beginScope();
         this.scopes[this.scopes.length - 1].set("self", true);
 
@@ -141,6 +168,8 @@ export class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
         }
 
         this.endScope();
+        if (stmt.superclass !== null) this.endScope();
+
         this.currentClass = enclosing;
     }
 

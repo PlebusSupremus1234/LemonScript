@@ -1,0 +1,17 @@
+class Rectangle {
+    init(width, height) {
+        self.width = width
+        self.height = height
+    }
+
+    area() { return self.width * self.height }
+}
+
+class Square < Rectangle { # Creating a subclass of Rectangle
+    init(length) {
+        super.init(length, length) # Calling the Rectangle init because that is the super
+    }
+}
+
+var square = Square(30)
+print(square.area()) # The class inherits the method from its superclass

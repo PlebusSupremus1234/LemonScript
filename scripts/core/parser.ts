@@ -1,15 +1,14 @@
-import { Expr, Assign, Binary, Call, Get, Grouping, Literal, Logical, Self, Set, Unary, Variable } from "../structures/expr"
-import { Stmt, Block, Class, Expression, Func, If, Print, Return, Var, While } from "../structures/stmt"
-
-import { Token } from "../structures/token";
 import { TokenType } from "../constants";
+import { Token } from "../structures/token";
 import { LSError } from "../structures/errors"
+import { Stmt, Block, Class, Expression, Func, If, Print, Return, Var, While } from "../structures/stmt"
+import { Expr, Assign, Binary, Call, Get, Grouping, Literal, Logical, Self, Set, Super, Unary, Variable } from "../structures/expr"
 
 export class Parser {
+    pos = 0;
     fname: string;
     ftext: string;
     tokens: Token[];
-    pos = 0;
 
     constructor(fname: string, ftext: string, tokens: Token[]) {
         this.fname = fname;
@@ -58,25 +57,32 @@ export class Parser {
     }
 
     classDeclaration() {
-        let current = this.tokens[this.pos];
         let text = `Expected a class name`;
-        if (!this.check("IDENTIFIER")) this.genSyntaxErr(current, text, 0);
-
+        if (!this.check("IDENTIFIER")) throw new LSError("Class Error", text, this.fname, this.ftext, this.tokens[this.pos].line, this.tokens[this.pos].rowpos);
         let name = this.advance();
-        current = this.tokens[this.pos];
+        
+        let superclass: null | Variable = null;
+        if (this.match(["LESS"])) {
+            text = `Expected a superclass name`;
+            if (!this.check("IDENTIFIER")) this.genSyntaxErr(this.tokens[this.pos], text, 0);
+            else {
+                superclass = new Variable(this.tokens[this.pos]);
+                this.advance();
+            }
+        }
+
         text = `Expected a '{' after class identifier`;
-        if (!this.check("LBRACE")) this.genSyntaxErr(current, text, 0);
+        if (!this.check("LBRACE")) this.genSyntaxErr(this.tokens[this.pos], text, 0);
         this.advance();
 
         let methods = [];
         while (!this.check("RBRACE") && !this.isAtEnd()) methods.push(this.function("method"));
         
-        current = this.tokens[this.pos];
         text = `Expected a '}' after class body`;
-        if (!this.check("RBRACE")) this.genSyntaxErr(current, text, 0);
+        if (!this.check("RBRACE")) this.genSyntaxErr(this.tokens[this.pos], text, 0);
         this.advance();
 
-        return new Class(name, methods);
+        return new Class(name, superclass, methods);
     }
 
     function(kind: string) {
@@ -201,7 +207,7 @@ export class Parser {
     comparison(): Expr {
         let expr = this.term();
 
-        while (this.match(["GREATER", "GREATEREQUAL", "LESS", "LESSEQUAL", "MOD", "CARET"])) {
+        while (this.match(["GREATER", "GREATEREQUAL", "LESS", "LESSEQUAL"])) {
             let operator = this.tokens[this.pos - 1];
             let right = this.term();
             expr = new Binary(expr, operator, right);
@@ -210,9 +216,20 @@ export class Parser {
     }
 
     term(): Expr {
-        let expr = this.factor();
+        let expr = this.mod();
 
         while (this.match(["MINUS", "PLUS"])) {
+            let operator = this.tokens[this.pos - 1];
+            let right = this.mod();
+            expr = new Binary(expr, operator, right);
+        }
+        return expr;
+    }
+
+    mod(): Expr {
+        let expr = this.factor();
+
+        while (this.match(["MOD"])) {
             let operator = this.tokens[this.pos - 1];
             let right = this.factor();
             expr = new Binary(expr, operator, right);
@@ -221,9 +238,20 @@ export class Parser {
     }
 
     factor(): Expr {
-        let expr = this.unary();
+        let expr = this.power();
 
         while (this.match(["DIV", "MUL"])) {
+            let operator = this.tokens[this.pos - 1];
+            let right = this.power();
+            expr = new Binary(expr, operator, right);
+        }
+        return expr;
+    }
+
+    power(): Expr {
+        let expr = this.unary();
+
+        while (this.match(["CARET"])) {
             let operator = this.tokens[this.pos - 1];
             let right = this.unary();
             expr = new Binary(expr, operator, right);
@@ -257,9 +285,21 @@ export class Parser {
 
     primary(): Expr {
         if (this.match(["FALSE"])) return new Literal("FALSE", false);
-        if (this.match(["TRUE"])) return new Literal("TRUE", true);
-        
+        if (this.match(["TRUE"])) return new Literal("TRUE", true);        
         if (this.match(["INT", "FLOAT", "STRING", "NULL"])) return new Literal(this.tokens[this.pos - 1].type, this.tokens[this.pos - 1].value);
+
+        if (this.match(["SUPER"])) {
+            let keyword = this.tokens[this.pos - 1];
+
+            if (!this.check("DOT")) this.genSyntaxErr(this.tokens[this.pos - 1], `Expected a '.' after super`, 5);
+            this.advance();
+
+            let text = `Expected a superclass method name on line ${this.tokens[this.pos].line}`;
+            if (!this.check("IDENTIFIER")) throw new LSError("Class Error", text, this.fname, this.ftext, this.tokens[this.pos].line, this.tokens[this.pos].rowpos);
+            let method = this.advance();
+
+            return new Super(keyword, method);
+        }
 
         if (this.match(["SELF"])) return new Self(this.tokens[this.pos - 1]);
         if (this.match(["IDENTIFIER"])) return new Variable(this.tokens[this.pos - 1]);
@@ -274,8 +314,8 @@ export class Parser {
         }
 
         let prev = this.tokens[this.pos - 1];
-        let l = prev ? prev.line : 1;
-        let text = `Expected an expression on line ${l}`;
+        if (!prev) prev = this.tokens[this.pos];
+        let text = `Expected an expression`;
         throw this.genSyntaxErr(prev, text, 0);
     }
 

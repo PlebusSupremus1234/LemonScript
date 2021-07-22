@@ -1,14 +1,16 @@
-import { Visitor as ExprVisitor, Expr, Assign, Binary, Call, Get, Grouping, Literal, Logical, Self, Set, Unary, Variable } from "../structures/expr"
-import { Visitor as StmtVisitor, Stmt, Block, Class, Expression, Func, If, Print, Return, Var, While } from "../structures/stmt"
-import { Token, TokenValue } from "../structures/token"
 import { LSError } from "../structures/errors"
 import { capitilizeFirstLetter } from "../helper"
 import { Environment } from "../structures/environment"
-import { Callable } from "../structures/callable"
-import { Function } from "../structures/function"
-import { LSClass } from "../structures/class"
-import { Instance } from "../structures/instance"
-import { ReturnException } from "../structures/return-exception"
+import { Token, TokenValue } from "../structures/token"
+
+import { LSClass } from "../functions/class"
+import { Callable } from "../functions/callable"
+import { Function } from "../functions/function"
+import { Instance } from "../functions/instance"
+import { ReturnException } from "../functions/return-exception"
+
+import { Visitor as StmtVisitor, Stmt, Block, Class, Expression, Func, If, Print, Return, Var, While } from "../structures/stmt"
+import { Visitor as ExprVisitor, Expr, Assign, Binary, Call, Get, Grouping, Literal, Logical, Self, Set, Super, Unary, Variable } from "../structures/expr"
 
 export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
     fname: string;
@@ -135,9 +137,7 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
     visitGetExpr(expr: Get) {
         let obj = this.evaluate(expr.obj);
 
-        if (obj instanceof Instance) {
-            return obj.get(expr.name, this.fname, this.ftext);
-        }
+        if (obj instanceof Instance) return obj.get(expr.name, this.fname, this.ftext);
 
         let text = `Only instances have properties on line ${expr.name.line}`;
         throw new LSError("Type Error", text, this.fname, this.ftext, expr.name.line, expr.name.rowpos);
@@ -174,6 +174,33 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
         return val;
     }
 
+    visitSuperExpr(expr: Super) {
+        let distance = this.locals.get(expr);
+        if (distance) {
+            let superclass = this.environment.getAt(distance, "super");
+            if (superclass instanceof LSClass) {
+                let object = this.environment.getAt(distance - 1, "self");
+                let method = superclass.findMethod(expr.method.stringify());
+                if (method !== null) {
+                    if (object instanceof Instance) return method.bind(expr.keyword, object);
+                    else {
+                        let text = `'self' does not point to an instance in the superclass on line ${expr.keyword.line}`;
+                        throw new LSError("Class Error", text, this.fname, this.ftext, expr.keyword.line, expr.keyword.rowpos);
+                    }
+                } else {
+                    let text = `Undefined property ${expr.method.stringify()} on line ${expr.method.line}`;
+                    throw new LSError("Class Error", text, this.fname, this.ftext, expr.method.line, expr.method.rowpos);
+                }
+            } else {
+                let text = `Super does not point to a class on line ${expr.keyword.line}`;
+                throw new LSError("Class Error", text, this.fname, this.ftext, expr.keyword.line, expr.keyword.rowpos);
+            }
+        } else {
+            let text = `Unresolved super expression on line ${expr.keyword.line}`;
+            throw new LSError("Syntax Error", text, this.fname, this.ftext, expr.keyword.line, expr.keyword.rowpos);
+        }
+    }
+
     visitUnaryExpr(expr: Unary) {
         let rightRaw = this.evaluate(expr.right);
         let right = rightRaw !== null ? rightRaw.toString() : "null";
@@ -193,14 +220,31 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
     }
 
     visitClassStmt(stmt: Class) {
+        let superclass = null;
+        if (stmt.superclass !== null) {
+            superclass = this.evaluate(stmt.superclass);
+            if (!(superclass instanceof LSClass)) {
+                let text = `Superclass must be a class on line ${stmt.superclass.name.line}`;
+                throw new LSError("Class Error", text, this.fname, this.ftext, stmt.superclass.name.line, stmt.superclass.name.rowpos)
+            }
+        }
+
+        if (stmt.superclass !== null) {
+            this.environment = new Environment(this.fname, this.ftext, this.environment);
+            let s = <Token>stmt.superclass.name;
+            let index = this.tokens.findIndex(i => i.line === s.line && i.rowpos === s.rowpos);
+            let token = this.tokens[index + 2];
+            this.environment.define(new Token("SUPER", "super", token.line, token.rowpos), true, superclass, "VAR");
+        }
+
         let methods: Map<string, Function> = new Map();
         for (let method of stmt.methods) {
             let func = new Function(this.fname, this.ftext, method, this.environment, method.name.stringify() === "init");
-            if (methods.has(method.name.stringify())) {console.log("yes")}
             methods.set(method.name.stringify(), func);
         }
 
-        let _class = new LSClass(stmt.name.stringify(), methods);
+        let _class = new LSClass(stmt.name.stringify(), superclass, methods);
+        if (superclass !== null) this.environment = this.environment.enclosing ? this.environment.enclosing : this.environment;
         this.environment.define(stmt.name, true, _class, "CLASS");
     }
 

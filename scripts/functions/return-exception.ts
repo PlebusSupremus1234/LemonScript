@@ -1,4 +1,4 @@
-import { TokenValue } from "./token";
+import { TokenValue } from "../structures/token";
 
 export class ReturnException {
     value: TokenValue;

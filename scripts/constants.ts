@@ -4,7 +4,7 @@ const symbols = [
     "BANG", "BANGEQUAL", "EQUAL", "EQUALEQUAL", "LESS", "LESSEQUAL", "GREATER", "GREATEREQUAL",
 ];
 const types = ["INT", "FLOAT", "STRING", "NULL", "INDENTIFIER", "EOF"];
-const keywords = ["AND", "CLASS", "CONST", "ELSE", "FALSE", "FOR", "FUNC", "IF", "OR", "PRINT", "RETURN", "TRUE", "VAR", "WHILE"];
+const keywords = ["AND", "CLASS", "CONST", "ELSE", "FALSE", "FOR", "FUNC", "IF", "OR", "PRINT", "RETURN", "SELF", "SUPER", "TRUE", "VAR", "WHILE"];
 const tokentypes = [...symbols, ...types, ...keywords] as const
 
 export type TokenType = typeof tokentypes[number];
