@@ -1,19 +1,18 @@
-import { TokenType } from "../constants";
-import { Token } from "../structures/token";
-import { LSError } from "../structures/errors"
+import { TokenType } from "../constants"
+import { Token } from "../structures/token"
+import { ErrorHandler } from "../structures/errorhandler"
+
 import { Stmt, Block, Class, Expression, Func, If, Print, Return, Var, While } from "../structures/stmt"
 import { Expr, Assign, Binary, Call, Get, Grouping, Literal, Logical, Self, Set, Super, Unary, Variable } from "../structures/expr"
 
 export class Parser {
     pos = 0;
-    fname: string;
-    ftext: string;
     tokens: Token[];
+    errorhandler: ErrorHandler;
 
-    constructor(fname: string, ftext: string, tokens: Token[]) {
-        this.fname = fname;
-        this.ftext = ftext;
+    constructor(tokens: Token[], errorhandler: ErrorHandler) {
         this.tokens = tokens;
+        this.errorhandler = errorhandler;
     }
 
     parse(): void | Stmt[] {
@@ -21,7 +20,7 @@ export class Parser {
         while (!this.isAtEnd()) {
             let statement: Stmt;
             try { statement = this.declaration(); }
-            catch(e) { return console.log(e.stringify()); }
+            catch(e) { return console.log(this.errorhandler.stringify()); }
             statements.push(statement);
         }
         return statements;
@@ -58,7 +57,7 @@ export class Parser {
 
     classDeclaration() {
         let text = `Expected a class name`;
-        if (!this.check("IDENTIFIER")) throw new LSError("Class Error", text, this.fname, this.ftext, this.tokens[this.pos].line, this.tokens[this.pos].rowpos);
+        if (!this.check("IDENTIFIER")) throw this.errorhandler.newError("Class Error", text, this.tokens[this.pos].line, this.tokens[this.pos].rowpos);
         let name = this.advance();
         
         let superclass: null | Variable = null;
@@ -88,6 +87,18 @@ export class Parser {
     function(kind: string) {
         let name: Token;
         let curr = this.tokens[this.pos];
+        let overridden = false;
+
+        if (this.check("OVERRIDE")) {
+            if (kind !== "method") {
+                let text = `Expected a function name on line ${curr.line}`;
+                throw this.genFunctionErr(text, curr.line, curr.rowpos);
+            } else {
+                overridden = true;
+                this.advance();
+            }
+        }
+
         if (!this.check("IDENTIFIER")) throw this.genFunctionErr(`Expected a ${kind} name on line ${curr.line}`, curr.line, curr.rowpos);
         else name = this.advance();
 
@@ -115,18 +126,18 @@ export class Parser {
         else this.advance();
 
         let body = this.block(this.tokens[this.pos - 1]);
-        return new Func(name, parameters, body);
+        return new Func(name, parameters, body, overridden);
     }
 
     // Functions
     isAtEnd(): boolean { return this.tokens[this.pos].type === "EOF"; }
 
     genSyntaxErr(token: Token, text: string, offset: number): void {
-        throw new LSError("Syntax Error", `${text} on line ${token.line}`, this.fname, this.ftext, token.line, token.rowpos + offset);
+        throw this.errorhandler.newError("Syntax Error", `${text} on line ${token.line}`, token.line, token.rowpos + offset);
     }
 
     genFunctionErr(text: string, line: number, rowpos: number, call?: boolean): void {
-        throw new LSError(`Invalid Function ${call ? "Call" : "Declaration"}`, text, this.fname, this.ftext, line, rowpos);
+        throw this.errorhandler.newError(`Invalid Function ${call ? "Call" : "Declaration"}`, text, line, rowpos);
     }
 
     advance(): Token {
@@ -286,7 +297,7 @@ export class Parser {
     primary(): Expr {
         if (this.match(["FALSE"])) return new Literal("FALSE", false);
         if (this.match(["TRUE"])) return new Literal("TRUE", true);        
-        if (this.match(["INT", "FLOAT", "STRING", "NULL"])) return new Literal(this.tokens[this.pos - 1].type, this.tokens[this.pos - 1].value);
+        if (this.match(["NUMBER", "STRING", "NULL"])) return new Literal(this.tokens[this.pos - 1].type, this.tokens[this.pos - 1].value);
 
         if (this.match(["SUPER"])) {
             let keyword = this.tokens[this.pos - 1];
@@ -295,7 +306,7 @@ export class Parser {
             this.advance();
 
             let text = `Expected a superclass method name on line ${this.tokens[this.pos].line}`;
-            if (!this.check("IDENTIFIER")) throw new LSError("Class Error", text, this.fname, this.ftext, this.tokens[this.pos].line, this.tokens[this.pos].rowpos);
+            if (!this.check("IDENTIFIER")) throw this.errorhandler.newError("Class Error", text, this.tokens[this.pos].line, this.tokens[this.pos].rowpos);
             let method = this.advance();
 
             return new Super(keyword, method);

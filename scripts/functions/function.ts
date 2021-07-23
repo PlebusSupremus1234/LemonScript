@@ -5,32 +5,29 @@ import { Token } from "../structures/token"
 import { Interpreter } from "../core/interpreter"
 import { ReturnException } from "./return-exception"
 import { Environment } from "../structures/environment"
+import { ErrorHandler } from "../structures/errorhandler"
 
 export class Function implements Callable {
-    fname: string;
-    text: string;
     isInit: boolean;
     declaration: Func;
     closure: Environment;
 
-    constructor(fname: string, text: string, declaration: Func, closure: Environment, isInit: boolean) {
-        this.fname = fname;
-        this.text = text;
-        this.declaration = declaration;
-        this.closure = closure;
+    constructor(declaration: Func, closure: Environment, isInit: boolean) {
         this.isInit = isInit;
+        this.closure = closure;
+        this.declaration = declaration;
     }
 
-    bind(token: Token, instance: Instance) {
-        let environment = new Environment(this.fname, this.text, this.closure);
+    bind(token: Token, instance: Instance, errorhandler: ErrorHandler) {
+        let environment = new Environment(this.closure, errorhandler);
         environment.define(new Token("SELF", "self", token.line, token.rowpos), false, instance, "VAR");
-        return new Function(this.fname, this.text, this.declaration, environment, this.isInit);
+        return new Function(this.declaration, environment, this.isInit);
     }
 
     arity() { return this.declaration.params.length; }
 
-    call(interpreter: Interpreter, token: Token, args: any[]) {
-        let environment = new Environment(this.fname, this.text, this.closure);        
+    call(interpreter: Interpreter, token: Token, args: any[], errorhandler: ErrorHandler) {
+        let environment = new Environment(this.closure, errorhandler);
         for (let i = 0; i < this.declaration.params.length; i++) environment.define(this.declaration.params[i], false, args[i], "VAR");
 
         try { interpreter.executeBlock(this.declaration.body, environment); }

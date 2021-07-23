@@ -1,6 +1,6 @@
 import { Token } from "../structures/token"
 import { Interpreter } from "./interpreter"
-import { LSError } from "../structures/errors"
+import { ErrorHandler } from "../structures/errorhandler"
 
 type ClassType = "NONE" | "CLASS" | "SUBCLASS";
 type visitable = { accept: (visitor: any) => any; };
@@ -10,17 +10,15 @@ import { Visitor as StmtVisitor, Stmt, Block, Class, Expression, Func, If, Print
 import { Visitor as ExprVisitor, Expr, Assign, Binary, Call, Get, Grouping, Literal, Logical, Self, Set, Super, Unary, Variable } from "../structures/expr"
 
 export class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
-    fname: string;
-    ftext: string;
     interpreter: Interpreter;
+    errorhandler: ErrorHandler;
     currentClass: ClassType = "NONE";
     currentFunction: FunctionType = "NONE";
     scopes: Array<Map<string, boolean>> = [];
 
-    constructor(fname: string, ftext: string, interpreter: Interpreter) {
-        this.fname = fname;
-        this.ftext = ftext;
+    constructor(interpreter: Interpreter, errorhandler: ErrorHandler) {
         this.interpreter = interpreter;
+        this.errorhandler = errorhandler;
     }
 
     // Functions
@@ -109,10 +107,10 @@ export class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
     visitSuperExpr(expr: Super) {
         if (this.currentClass === "NONE") {
             let text = `Cannot use 'super' outside of a class on line ${expr.keyword.line}`;
-            throw new LSError("Syntax Error", text, this.fname, this.ftext, expr.keyword.line, expr.keyword.rowpos);
+            throw this.errorhandler.newError("Syntax Error", text, expr.keyword.line, expr.keyword.rowpos);
         } else if (this.currentClass !== "SUBCLASS") {
             let text = `Cannot use 'super' in a class with no superclasses on line ${expr.keyword.line}`;
-            throw new LSError("Class Error", text, this.fname, this.ftext, expr.keyword.line, expr.keyword.rowpos);
+            throw this.errorhandler.newError("Class Error", text, expr.keyword.line, expr.keyword.rowpos);
         }
 
         this.resolveLocal(expr, expr.keyword);
@@ -125,7 +123,7 @@ export class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
         let length = this.scopes.length;
         if ((length !== 0) && this.scopes[length - 1].get(expr.name.stringify()) === false) {
             let text = `Cannot read local variable in its own initializer on line ${expr.name.line}`;
-            throw new LSError("Variable Error", text, this.fname, this.ftext, expr.name.line, expr.name.rowpos);
+            throw this.errorhandler.newError("Variable Error", text, expr.name.line, expr.name.rowpos);
         }
 
         this.resolveLocal(expr, expr.name);
@@ -147,7 +145,7 @@ export class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
 
         if (stmt.superclass !== null && stmt.name.stringify() === stmt.superclass.name.stringify()) {
             let text = `A class cannot inherit from itself on line ${stmt.name.line}`;
-            throw new LSError("Class Error", text, this.fname, this.ftext, stmt.name.line, stmt.name.rowpos);
+            throw this.errorhandler.newError("Class Error", text, stmt.name.line, stmt.name.rowpos);
         }
         if (stmt.superclass !== null) {
             this.currentClass = 'SUBCLASS';
@@ -193,11 +191,11 @@ export class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
     visitReturnStmt(stmt: Return) {
         let t = stmt.keyword;
         let text = `Cannot return in top-level code on line ${t.line}`;
-        if (this.currentFunction === "NONE") throw new LSError("Invalid Return", text, this.fname, this.ftext, t.line, t.rowpos);
+        if (this.currentFunction === "NONE") throw this.errorhandler.newError("Invalid Return", text, t.line, t.rowpos);
         if (stmt.value !== null) {
             if (this.currentFunction === "INITIALIZER") {
                 text = `Cannot return in an initializer function`;
-                throw new LSError("Invalid Function Declaration", text, this.fname, this.ftext, t.line, t.rowpos);
+                throw this.errorhandler.newError("Invalid Function Declaration", text, t.line, t.rowpos);
             }
             this.resolve(stmt.value);
         }

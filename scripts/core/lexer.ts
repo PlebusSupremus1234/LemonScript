@@ -1,6 +1,6 @@
-import { LSError } from "../structures/errors"
 import { Keywords, TokenType } from "../constants"
-import { Token, TokenValue } from "../structures/token";
+import { Token, TokenValue } from "../structures/token"
+import { ErrorHandler } from "../structures/errorhandler"
 
 export class Lexer {
     fname: string;
@@ -10,11 +10,13 @@ export class Lexer {
     pos = 0;
     line = 1;
     rowpos = 1;
+    errorhandler: ErrorHandler;
 
-    constructor(fname: string, ftext: string) {
+    constructor(fname: string, ftext: string, errorhandler: ErrorHandler) {
         this.ftext = ftext;
         this.fname = fname;
         this.currentChar = this.ftext[0];
+        this.errorhandler = errorhandler;
     }
 
     lex(): void | Token[] {
@@ -25,7 +27,7 @@ export class Lexer {
         }
         while (!this.isAtEnd()) {
             try { this.genToken(); }
-            catch(e) { return console.log(e.stringify()); }
+            catch(e) { return console.log(this.errorhandler.stringify()); }
         }
         this.addToken("EOF", null);
         return this.tokens;
@@ -34,10 +36,7 @@ export class Lexer {
     // Functions
     peek(): string { return this.ftext[this.pos + 1]; }
     isAtEnd(): boolean { return this.pos >= this.ftext.length; }
-
-    genError(text: string, rowpos: number = this.rowpos, line: number=this.line): void {
-        throw new LSError("Syntax Error", text, this.fname, this.ftext, line, rowpos);
-    }
+    genError(text: string, rowpos: number = this.rowpos, line: number=this.line): void { throw this.errorhandler.newError("Syntax Error", text, line, rowpos); }
 
     isAlpha(text: string): boolean {
         if (!text) return false;
@@ -136,7 +135,7 @@ export class Lexer {
                             this.genError(`Illegal Character '${this.currentChar}' detected on line ${this.line}`, this.rowpos);
                         }
                     }
-                    this.addToken(f ? "FLOAT" : "INT", parseFloat(this.ftext.substring(start, this.pos + 1)));
+                    this.addToken("NUMBER", parseFloat(this.ftext.substring(start, this.pos + 1)));
                 } else this.genError(`Illegal Character '${this.currentChar}' detected on line ${this.line}`, this.rowpos);
         }
     }

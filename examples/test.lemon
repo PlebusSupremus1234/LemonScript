@@ -1,5 +1,0 @@
-class hobr {
-    whenthe() { print("ok") }
-}
-
-print(hobr().whenthe)

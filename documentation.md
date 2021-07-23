@@ -229,3 +229,8 @@ var square = Square(30)
 print(square.area()) # The class inherits the method from its superclass
 ```
 Here we are creating a subclass of `Rectangle` called `Square`. The square class's init func only takes one argument, unlike the rectangle one. But then it calls `super.init(length, length)`. This is calling the init function of the rectangle class, initializing the self variables. 
+
+For safety reasons, if you try to override an existing superclass method in the subclass, it'll error. To override a superclass method in a sublass, you can put a `override` keyword infront of the method name. For example:
+```js
+override [method name]([args]) {}
+```

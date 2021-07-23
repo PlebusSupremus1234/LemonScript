@@ -1,7 +1,7 @@
-import { LSError } from "../structures/errors"
 import { capitilizeFirstLetter } from "../helper"
 import { Environment } from "../structures/environment"
 import { Token, TokenValue } from "../structures/token"
+import { ErrorHandler } from "../structures/errorhandler"
 
 import { LSClass } from "../functions/class"
 import { Callable } from "../functions/callable"
@@ -13,26 +13,23 @@ import { Visitor as StmtVisitor, Stmt, Block, Class, Expression, Func, If, Print
 import { Visitor as ExprVisitor, Expr, Assign, Binary, Call, Get, Grouping, Literal, Logical, Self, Set, Super, Unary, Variable } from "../structures/expr"
 
 export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
-    fname: string;
-    ftext: string;
     tokens: Token[];
     globals: Environment;
     environment: Environment;
+    errorhandler: ErrorHandler;
     locals: Map<Expr, number> = new Map();
 
-    constructor(fname: string, ftext: string, tokens: Token[]) {
-        this.fname = fname;
-        this.ftext = ftext;
+    constructor(tokens: Token[], errorhandler: ErrorHandler) {
         this.tokens = tokens;
-
-        this.globals = new Environment(this.fname, this.ftext, null);
+        this.errorhandler = errorhandler;
+        this.globals = new Environment(null, errorhandler);
         this.environment = this.globals;
     }
 
     interpret(statements: Stmt[]) {
         for (let statement of statements) {
             try { this.execute(statement); }
-            catch(e) { return console.log(e.stringify()); }
+            catch(e) { return console.log(this.errorhandler.stringify()); }
         }
     }
 
@@ -46,13 +43,13 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
     }
 
     functionErr(text: string, type: string, line: number, pos: number) {
-        throw new LSError(`Invalid Function ${type}`, text, this.fname, this.ftext, line, pos);
+        throw this.errorhandler.newError(`Invalid Function ${type}`, text, line, pos);
     }
 
     binaryErr(kw1: string, kw2: string, v1: TokenValue, v2: TokenValue, op: Token, left: TokenValue) {
         let text = `Cannot ${kw1} type ${capitilizeFirstLetter(typeof v2)} ${kw2} type ${capitilizeFirstLetter(typeof v1)} on line ${op.line}`;
         let token = this.tokens[this.tokens.findIndex(i => i.line === op.line && i.rowpos === op.rowpos) + (typeof left !== "number" ? -1 : 1)];
-        throw new LSError("Type Error", text, this.fname, this.ftext, token.line, token.rowpos);
+        throw this.errorhandler.newError("Type Error", text, token.line, token.rowpos);
     }
 
     // Visit Expressions
@@ -61,7 +58,7 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
         let distance = this.locals.get(expr);
 
         if (distance !== undefined) this.environment.assignAt(distance, expr.name, value);
-        else this.globals.assign(expr.name, value, this.ftext);
+        else this.globals.assign(expr.name, value);
 
         return value;
     }
@@ -85,7 +82,7 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
                     if (r % 1 !== 0) {
                         let text = `Cannot multiply a string by a non-int value on line ${o.line}`;
                         let pos = this.tokens[this.tokens.findIndex(i => i.line === o.line && i.rowpos === o.rowpos) + 1].rowpos;
-                        throw new LSError("Type Error", text, this.fname, this.ftext, o.line, pos);
+                        throw this.errorhandler.newError("Type Error", text, o.line, pos);
                     }
                     else return Array(r).fill(l).join("");
                 } else this.binaryErr("multiply", "to", l, r, o, l);
@@ -131,16 +128,16 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
         current = this.tokens[index];
         if (args.length !== fn.arity()) throw this.functionErr(`Expected ${fn.arity()} arguments but got ${args.length}`, "Call", current.line, current.rowpos);
 
-        return fn.call(this, current, args);
+        return fn.call(this, current, args, this.errorhandler);
     }
 
     visitGetExpr(expr: Get) {
         let obj = this.evaluate(expr.obj);
 
-        if (obj instanceof Instance) return obj.get(expr.name, this.fname, this.ftext);
+        if (obj instanceof Instance) return obj.get(expr.name);
 
         let text = `Only instances have properties on line ${expr.name.line}`;
-        throw new LSError("Type Error", text, this.fname, this.ftext, expr.name.line, expr.name.rowpos);
+        throw this.errorhandler.newError("Type Error", text, expr.name.line, expr.name.rowpos);
     }
 
     visitGroupingExpr(expr: Grouping) { return this.evaluate(expr.expression); }
@@ -166,7 +163,7 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
 
         if (!(obj instanceof Instance)) {
             let text = `Only instances have fields on line ${expr.name.line}`;
-            throw new LSError("Type Error", text, this.fname, this.ftext, expr.name.line, expr.name.rowpos);
+            throw this.errorhandler.newError("Type Error", text, expr.name.line, expr.name.rowpos);
         }
 
         let val = this.evaluate(expr.val);
@@ -182,22 +179,22 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
                 let object = this.environment.getAt(distance - 1, "self");
                 let method = superclass.findMethod(expr.method.stringify());
                 if (method !== null) {
-                    if (object instanceof Instance) return method.bind(expr.keyword, object);
+                    if (object instanceof Instance) return method.bind(expr.keyword, object, this.errorhandler);
                     else {
                         let text = `'self' does not point to an instance in the superclass on line ${expr.keyword.line}`;
-                        throw new LSError("Class Error", text, this.fname, this.ftext, expr.keyword.line, expr.keyword.rowpos);
+                        throw this.errorhandler.newError("Class Error", text, expr.keyword.line, expr.keyword.rowpos);
                     }
                 } else {
                     let text = `Undefined property ${expr.method.stringify()} on line ${expr.method.line}`;
-                    throw new LSError("Class Error", text, this.fname, this.ftext, expr.method.line, expr.method.rowpos);
+                    throw this.errorhandler.newError("Class Error", text, expr.method.line, expr.method.rowpos);
                 }
             } else {
                 let text = `Super does not point to a class on line ${expr.keyword.line}`;
-                throw new LSError("Class Error", text, this.fname, this.ftext, expr.keyword.line, expr.keyword.rowpos);
+                throw this.errorhandler.newError("Class Error", text, expr.keyword.line, expr.keyword.rowpos);
             }
         } else {
             let text = `Unresolved super expression on line ${expr.keyword.line}`;
-            throw new LSError("Syntax Error", text, this.fname, this.ftext, expr.keyword.line, expr.keyword.rowpos);
+            throw this.errorhandler.newError("Syntax Error", text, expr.keyword.line, expr.keyword.rowpos);
         }
     }
 
@@ -215,7 +212,7 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
 
     // Visit Statements
     visitBlockStmt(stmt: Block) {
-        this.executeBlock(stmt.statements, new Environment(this.fname, this.ftext, this.environment));
+        this.executeBlock(stmt.statements, new Environment(this.environment, this.errorhandler));
         return null;
     }
 
@@ -225,12 +222,12 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
             superclass = this.evaluate(stmt.superclass);
             if (!(superclass instanceof LSClass)) {
                 let text = `Superclass must be a class on line ${stmt.superclass.name.line}`;
-                throw new LSError("Class Error", text, this.fname, this.ftext, stmt.superclass.name.line, stmt.superclass.name.rowpos)
+                throw this.errorhandler.newError("Class Error", text, stmt.superclass.name.line, stmt.superclass.name.rowpos)
             }
         }
 
         if (stmt.superclass !== null) {
-            this.environment = new Environment(this.fname, this.ftext, this.environment);
+            this.environment = new Environment(this.environment, this.errorhandler);
             let s = <Token>stmt.superclass.name;
             let index = this.tokens.findIndex(i => i.line === s.line && i.rowpos === s.rowpos);
             let token = this.tokens[index + 2];
@@ -239,11 +236,17 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
 
         let methods: Map<string, Function> = new Map();
         for (let method of stmt.methods) {
-            let func = new Function(this.fname, this.ftext, method, this.environment, method.name.stringify() === "init");
+            if (superclass && superclass.methods.has(method.name.stringify()) && method.name.stringify() !== "init" && !method.overridden) {
+                let text = `Method '${method.name.stringify()}' is already defined in the superclass on line ${method.name.line}`
+                this.errorhandler.newError("Class Error", text, method.name.line, method.name.rowpos);
+                text = `You can override it with a 'override' keyword in front of the method name`;
+                throw this.errorhandler.newHelp(text);
+            }
+            let func = new Function(method, this.environment, method.name.stringify() === "init");
             methods.set(method.name.stringify(), func);
         }
 
-        let _class = new LSClass(stmt.name.stringify(), superclass, methods);
+        let _class = new LSClass(stmt.name.stringify(), superclass, methods, this.errorhandler);
         if (superclass !== null) this.environment = this.environment.enclosing ? this.environment.enclosing : this.environment;
         this.environment.define(stmt.name, true, _class, "CLASS");
     }
@@ -253,7 +256,7 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
     }
 
     visitFuncStmt(stmt: Func) {
-        let func = new Function(this.fname, this.ftext, stmt, this.environment, false);
+        let func = new Function(stmt, this.environment, false);
         this.environment.define(stmt.name, true, func, "FUNCTION");
     }
 
@@ -265,6 +268,8 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
 
     visitPrintStmt(stmt: Print) {
         let value = this.evaluate(stmt.expression);
+        if (value instanceof Function || value instanceof LSClass || value instanceof Instance) value = value.stringify();
+
         console.log(value);
     }
 
@@ -297,6 +302,6 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
     lookupVariable(name: Token, expr: Expr) {
         let distance = this.locals.get(expr);
         if (distance !== undefined) return this.environment.getAt(distance, "", name);
-        else return this.globals.get(name, this.ftext);
+        else return this.globals.get(name);
     }
 }

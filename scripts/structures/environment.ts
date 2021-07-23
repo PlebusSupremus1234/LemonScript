@@ -1,7 +1,7 @@
-import { LSError } from "./errors";
-import { Token, TokenValue } from "./token";
+import { Token, TokenValue } from "./token"
 import { Callable } from "../functions/callable"
 import { capitilizeFirstLetter } from "../helper"
+import { ErrorHandler } from "../structures/errorhandler"
 
 type KeyType = "VAR" | "FUNCTION" | "CLASS"
 type VarKey = {
@@ -11,15 +11,12 @@ type VarKey = {
 }
 
 export class Environment {
-    fname: string;
-    ftext: string;
-    error: null | LSError = null;
+    errorhandler: ErrorHandler;
     enclosing: null | Environment = null;
     values: Map<string, VarKey> = new Map();
 
-    constructor(fname: string, ftext: string, enclosing: null | Environment) {
-        this.fname = fname;
-        this.ftext = ftext;
+    constructor(enclosing: null | Environment, errorhandler: ErrorHandler) {
+        this.errorhandler = errorhandler;
         if (enclosing) this.enclosing = enclosing;
     }
 
@@ -27,7 +24,7 @@ export class Environment {
         let key = this.values.get(name.stringify());
         if (key && key.type !== "VAR") {
             let text = `Cannot redefine ${key.type.toLowerCase()} '${name.stringify()}' on line ${name.line}`;
-            throw new LSError(`Invalid ${capitilizeFirstLetter(key.type.toLowerCase())} Declaration`, text, this.fname, this.ftext, name.line, name.rowpos);
+            throw this.errorhandler.newError(`Invalid ${capitilizeFirstLetter(key.type.toLowerCase())} Declaration`, text, name.line, name.rowpos);
         }
         this.values.set(name.stringify(), { constant, value, type });
     }
@@ -41,13 +38,13 @@ export class Environment {
         return environment;
     }
 
-    get(name: Token, ftext: string): TokenValue {
+    get(name: Token): TokenValue {
         let key = this.values.has(name.stringify()) ? this.values.get(name.stringify()) : undefined;
         if (key && key.value !== undefined) return key.value;
-        else if (this.enclosing) return this.enclosing.get(name, ftext);
+        else if (this.enclosing) return this.enclosing.get(name);
         else {
             let text = `Undefined variable '${name.stringify()}' detected on line ${name.line}`;
-            throw new LSError("Variable Error", text, this.fname, this.ftext, name.line, name.rowpos);
+            throw this.errorhandler.newError("Variable Error", text, name.line, name.rowpos);
         }
     }
 
@@ -59,17 +56,17 @@ export class Environment {
         } else return null;
     }
 
-    assign(name: Token, value: TokenValue, ftext: string) {
+    assign(name: Token, value: TokenValue) {
         let key = this.values.get(name.stringify());
             if (key) {
             if (key.constant === true) {
                 let text = `Cannot change the value of a constant variable on line ${name.line}`;
-                throw new LSError("Variable Error", text, this.fname, this.ftext, name.line, name.rowpos);
+                throw this.errorhandler.newError("Variable Error", text, name.line, name.rowpos);
             } else this.values.set(name.stringify(), { constant: false, value, type: key.type });
-        } else if (this.enclosing) this.enclosing.assign(name, value, ftext);
+        } else if (this.enclosing) this.enclosing.assign(name, value);
         else {
             let text = `Undefined variable '${name.stringify()}' detected on line ${name.line}`;
-            throw new LSError("Variable Error", text, this.fname, this.ftext, name.line, name.rowpos);
+            throw this.errorhandler.newError("Variable Error", text, name.line, name.rowpos);
         }
     }
 
@@ -80,11 +77,11 @@ export class Environment {
             if (key) {
                 if (key.constant === true) {
                     let text = `Cannot change the value of a constant variable on line ${name.line}`;
-                    throw new LSError("Variable Error", text, this.fname, this.ftext, name.line, name.rowpos);
+                    throw this.errorhandler.newError("Variable Error", text, name.line, name.rowpos);
                 } else ancestor.values.set(name.stringify(), { constant: false, value, type: key.type });
             } else {
                 let text = `Undefined variable '${name.stringify()}' detected on line ${name.line}`;
-                throw new LSError("Variable Error", text, this.fname, this.ftext, name.line, name.rowpos);
+                throw this.errorhandler.newError("Variable Error", text, name.line, name.rowpos);
             }
         }
     }

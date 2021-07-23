@@ -51,13 +51,15 @@ export class Expression {
 
 export class Func {
     name: Token;
-    params: Token[];
     body: Stmt[];
+    params: Token[];
+    overridden: boolean;
 
-    constructor(name: Token, params: Token[], body: Stmt[]) {
+    constructor(name: Token, params: Token[], body: Stmt[], overridden: boolean = false) {
         this.name = name;
-        this.params = params;
         this.body = body;
+        this.params = params;
+        this.overridden = overridden;
     }
 
     accept<T>(visitor: Visitor<T>): T { return visitor.visitFuncStmt(this); }
