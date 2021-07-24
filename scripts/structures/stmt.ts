@@ -1,5 +1,6 @@
-import { Expr, Variable } from "./expr";
+import { Expr, Variable } from "./expr"
 import { Token } from "../structures/token"
+import { LSTypes } from "../constants"
 
 export interface Visitor<T> {
     visitBlockStmt: (stmt: Block) => T;
@@ -103,11 +104,13 @@ export class Return {
 
 export class Var {
     name: Token;
+    type: LSTypes;
     constant: boolean;
     initializer: Expr | null;
 
-    constructor(name: Token, constant: boolean, initializer: Expr | null) {
+    constructor(name: Token, constant: boolean, type: LSTypes, initializer: Expr | null) {
         this.name = name;
+        this.type = type;
         this.constant = constant;
         this.initializer = initializer;
     }

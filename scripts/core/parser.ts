@@ -1,6 +1,6 @@
-import { TokenType } from "../constants"
 import { Token } from "../structures/token"
 import { ErrorHandler } from "../structures/errorhandler"
+import { TokenType, LSTypes } from "../constants"
 
 import { Stmt, Block, Class, Expression, Func, If, Print, Return, Var, While } from "../structures/stmt"
 import { Expr, Assign, Binary, Call, Get, Grouping, Literal, Logical, Self, Set, Super, Unary, Variable } from "../structures/expr"
@@ -49,10 +49,34 @@ export class Parser {
     varDeclaration(constant: boolean): Var {
         let name = this.advance();
 
-        let initializer: Expr | null = null;
-        if (this.match(["EQUAL"])) initializer = this.expression();
+        if (name.type !== "IDENTIFIER") {
+            let text = `Variable name must be an identifier and cannot be a keyword, number, type or invalid symbol on line ${name.line}`;
+            throw this.errorhandler.newError("Invalid Variable Name", text, name.line, name.rowpos);
+        }
 
-        return new Var(name, constant, initializer);
+        let initializer: Expr | null = null;
+        let type: LSTypes = "ANY";
+
+        if (this.match(["EQUAL"])) initializer = this.expression();
+        else {
+            let token = this.tokens[this.pos];
+            if (this.match(["COLON"])) {
+                token = this.tokens[this.pos];
+                if (this.match(["TYPE"]) && typeof token.value === "string") {
+                    type = token.value;
+                    token = this.tokens[this.pos];
+                    if (this.match(["EQUAL"])) initializer = this.expression();
+                } else {
+                    let text = `Expected a valid type after colon on on line ${token.line}`;
+                    throw this.errorhandler.newError("Syntax Error", text, token.line, token.rowpos);
+                }
+            } else {
+                let text = `Unexpected token '${token.stringify()}' detected on line ${token.line}`;
+                throw this.errorhandler.newError("Syntax Error", text, token.line, token.rowpos);
+            }
+        }
+
+        return new Var(name, constant, type, initializer);
     }
 
     classDeclaration() {
@@ -295,9 +319,10 @@ export class Parser {
     }
 
     primary(): Expr {
-        if (this.match(["FALSE"])) return new Literal("FALSE", false);
         if (this.match(["TRUE"])) return new Literal("TRUE", true);        
-        if (this.match(["NUMBER", "STRING", "NULL"])) return new Literal(this.tokens[this.pos - 1].type, this.tokens[this.pos - 1].value);
+        if (this.match(["FALSE"])) return new Literal("FALSE", false);
+        if (this.match(["NUMBER", "STRING"])) return new Literal("NUMBER", this.tokens[this.pos - 1].value);
+        if (this.match(["NULL"])) return new Literal("NULL", null);
 
         if (this.match(["SUPER"])) {
             let keyword = this.tokens[this.pos - 1];

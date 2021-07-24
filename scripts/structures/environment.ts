@@ -1,13 +1,16 @@
+import { getType } from "../helper"
+import { LSTypes } from "../constants"
 import { Token, TokenValue } from "./token"
-import { Callable } from "../functions/callable"
 import { capitilizeFirstLetter } from "../helper"
 import { ErrorHandler } from "../structures/errorhandler"
 
 type KeyType = "VAR" | "FUNCTION" | "CLASS"
+type varValType = LSTypes | null;
 type VarKey = {
     constant: boolean;
-    type: KeyType;
-    value: TokenValue | Callable;
+    vartype: KeyType;
+    type: varValType;
+    value: TokenValue;
 }
 
 export class Environment {
@@ -20,13 +23,13 @@ export class Environment {
         if (enclosing) this.enclosing = enclosing;
     }
 
-    define(name: Token, constant: boolean, value: TokenValue, type: KeyType) {
+    define(name: Token, constant: boolean, value: TokenValue, type: varValType, vartype: KeyType) {
         let key = this.values.get(name.stringify());
-        if (key && key.type !== "VAR") {
-            let text = `Cannot redefine ${key.type.toLowerCase()} '${name.stringify()}' on line ${name.line}`;
-            throw this.errorhandler.newError(`Invalid ${capitilizeFirstLetter(key.type.toLowerCase())} Declaration`, text, name.line, name.rowpos);
+        if (key && key.vartype !== "VAR") {
+            let text = `Cannot redefine ${key.vartype.toLowerCase()} '${name.stringify()}' on line ${name.line}`;
+            throw this.errorhandler.newError(`Invalid ${capitilizeFirstLetter(key.vartype.toLowerCase())} Declaration`, text, name.line, name.rowpos);
         }
-        this.values.set(name.stringify(), { constant, value, type });
+        this.values.set(name.stringify(), { constant, value, type, vartype });
     }
 
     ancestor(distance: number) {
@@ -56,30 +59,34 @@ export class Environment {
         } else return null;
     }
 
-    assign(name: Token, value: TokenValue) {
-        let key = this.values.get(name.stringify());
-            if (key) {
-            if (key.constant === true) {
-                let text = `Cannot change the value of a constant variable on line ${name.line}`;
-                throw this.errorhandler.newError("Variable Error", text, name.line, name.rowpos);
-            } else this.values.set(name.stringify(), { constant: false, value, type: key.type });
-        } else if (this.enclosing) this.enclosing.assign(name, value);
-        else {
-            let text = `Undefined variable '${name.stringify()}' detected on line ${name.line}`;
-            throw this.errorhandler.newError("Variable Error", text, name.line, name.rowpos);
-        }
-    }
-
-    assignAt(distance: number, name: Token, value: TokenValue) {
-        let ancestor = this.ancestor(distance);
+    assign(name: Token, value: TokenValue, tokens: Token[], ancestor?: boolean, distance?: number) {
+        let collection = this.values;
         if (ancestor) {
-            let key = ancestor.values.get(name.stringify());
+            if (!distance) return;
+            let ancestorEnv = this.ancestor(distance);
+            if (!ancestorEnv) return;
+            collection = ancestorEnv.values;
+        }
+
+        if (collection) {
+            let key = collection.get(name.stringify());
             if (key) {
                 if (key.constant === true) {
                     let text = `Cannot change the value of a constant variable on line ${name.line}`;
                     throw this.errorhandler.newError("Variable Error", text, name.line, name.rowpos);
-                } else ancestor.values.set(name.stringify(), { constant: false, value, type: key.type });
-            } else {
+                } else {
+                    if (key.type === "Number" && typeof value !== "number" ||
+                        key.type === "String" && typeof value !== "string" ||
+                        key.type === "Boolean" && typeof value !== "boolean" ||
+                        key.type === "Null" && value !== null) {
+                        let token = tokens[tokens.findIndex(i => i.line === name.line && i.rowpos === name.rowpos) + 2];
+                        let text = `Cannot assign type ${capitilizeFirstLetter((typeof value).toString())} to a variable with type ${key.type} on line ${token.line}`;
+                        throw this.errorhandler.newError("Type Error", text, token.line, token.rowpos);
+                    }
+                    collection.set(name.stringify(), { constant: false, value, type: key.type, vartype: key.vartype });
+                }
+            } else if (this.enclosing && !ancestor) this.enclosing.assign(name, value, tokens);
+            else {
                 let text = `Undefined variable '${name.stringify()}' detected on line ${name.line}`;
                 throw this.errorhandler.newError("Variable Error", text, name.line, name.rowpos);
             }

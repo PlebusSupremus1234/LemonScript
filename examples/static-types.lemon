@@ -1,0 +1,5 @@
+var test: Number = 50
+
+test = "string" # should error
+
+print(test)

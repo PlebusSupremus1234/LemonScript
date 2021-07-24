@@ -1,6 +1,6 @@
-import { Keywords, TokenType } from "../constants"
 import { Token, TokenValue } from "../structures/token"
 import { ErrorHandler } from "../structures/errorhandler"
+import { Keywords, TokenType, LSTypesArray } from "../constants"
 
 export class Lexer {
     fname: string;
@@ -79,6 +79,7 @@ export class Lexer {
             case ")": this.addToken("RPAREN"); break;
             case "{": this.addToken("LBRACE"); break;
             case "}": this.addToken("RBRACE"); break;
+            case ":": this.addToken("COLON"); break;
             case ";": this.addToken("SEMICOLON"); break;
             case ".": this.addToken("DOT"); break;
             case ",": this.addToken("COMMA"); break;
@@ -118,16 +119,15 @@ export class Lexer {
                     let rowstart = this.rowpos;
                     while (this.isAlpha(this.peek()) || "0123456789".includes(this.peek())) this.advance();
                     let text = this.ftext.substring(start, this.pos + 1);
-                    if (Keywords.map(i => i.toLowerCase()).includes(text)) this.addToken(text.toUpperCase(), text, rowstart);
+                    if (LSTypesArray.includes(text)) this.addToken("TYPE", text, rowstart);
+                    else if (Keywords.map(i => i.toLowerCase()).includes(text)) this.addToken(text.toUpperCase(), text, rowstart);
                     else this.addToken("IDENTIFIER", text, rowstart);
                 } else if ("0123456789".includes(this.currentChar)) { // Number
                     let start = this.pos;
-                    let f = false;
                     while ("0123456789".includes(this.peek())) this.advance();                
                     if (this.peek() === ".") {
                         if ("0123456789".includes(this.ftext[this.pos + 2])) {
                             this.advance();
-                            f = true;
                             while ("0123456789".includes(this.peek())) this.advance();
                         } else {
                             this.advance();

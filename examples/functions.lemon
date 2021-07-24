@@ -6,3 +6,6 @@ func isPrime(num) {
 }
 
 print(isPrime(17)) # true
+print(isPrime(97)) # true
+print(isPrime(18)) # false
+print(isPrime(54)) # false

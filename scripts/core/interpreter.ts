@@ -1,7 +1,7 @@
-import { capitilizeFirstLetter } from "../helper"
 import { Environment } from "../structures/environment"
 import { Token, TokenValue } from "../structures/token"
 import { ErrorHandler } from "../structures/errorhandler"
+import { capitilizeFirstLetter, getType } from "../helper"
 
 import { LSClass } from "../functions/class"
 import { Callable } from "../functions/callable"
@@ -47,8 +47,8 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
     }
 
     binaryErr(kw1: string, kw2: string, v1: TokenValue, v2: TokenValue, op: Token, left: TokenValue) {
-        let text = `Cannot ${kw1} type ${capitilizeFirstLetter(typeof v2)} ${kw2} type ${capitilizeFirstLetter(typeof v1)} on line ${op.line}`;
-        let token = this.tokens[this.tokens.findIndex(i => i.line === op.line && i.rowpos === op.rowpos) + (typeof left !== "number" ? -1 : 1)];
+        let text = `Cannot ${kw1} type ${capitilizeFirstLetter(getType(v2))} ${kw2} type ${capitilizeFirstLetter(getType(v1))} on line ${op.line}`;
+        let token = this.tokens[this.tokens.findIndex(i => i.line === op.line && i.rowpos === op.rowpos) + (getType(left) !== "number" ? -1 : 1)];
         throw this.errorhandler.newError("Type Error", text, token.line, token.rowpos);
     }
 
@@ -57,8 +57,8 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
         let value = this.evaluate(expr.value);
         let distance = this.locals.get(expr);
 
-        if (distance !== undefined) this.environment.assignAt(distance, expr.name, value);
-        else this.globals.assign(expr.name, value);
+        if (distance !== undefined) this.environment.assign(expr.name, value, this.tokens, true, distance);
+        else this.globals.assign(expr.name, value, this.tokens);
 
         return value;
     }
@@ -81,13 +81,20 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
                 if (typeof l === "string" && typeof r === "number") {
                     if (r % 1 !== 0) {
                         let text = `Cannot multiply a string by a non-int value on line ${o.line}`;
-                        let pos = this.tokens[this.tokens.findIndex(i => i.line === o.line && i.rowpos === o.rowpos) + 1].rowpos;
-                        throw this.errorhandler.newError("Type Error", text, o.line, pos);
+                        let token = this.tokens[this.tokens.findIndex(i => i.line === o.line && i.rowpos === o.rowpos) + 1];
+                        throw this.errorhandler.newError("Type Error", text, token.line, token.rowpos);
                     }
                     else return Array(r).fill(l).join("");
                 } else this.binaryErr("multiply", "to", l, r, o, l);
             case "DIV":
-                if (typeof l === "number" && typeof r === "number") return l / r;
+                if (typeof l === "number" && typeof r === "number") {
+                    if (r === 0) {
+                        let text = `Cannot divide a number by 0 on line ${o.line}`;                        
+                        let token = this.tokens[this.tokens.findIndex(i => i.line === o.line && i.rowpos === o.rowpos) + 1];
+                        throw this.errorhandler.newError("Zero Division Error", text, token.line, token.rowpos);
+                    }
+                    return l / r;
+                }
                 this.binaryErr("divide", "from", l, r, o, l);
             case "MOD":
                 if (typeof l === "number" && typeof r === "number") return l % r;
@@ -231,7 +238,7 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
             let s = <Token>stmt.superclass.name;
             let index = this.tokens.findIndex(i => i.line === s.line && i.rowpos === s.rowpos);
             let token = this.tokens[index + 2];
-            this.environment.define(new Token("SUPER", "super", token.line, token.rowpos), true, superclass, "VAR");
+            this.environment.define(new Token("SUPER", "super", token.line, token.rowpos), true, superclass, null, "VAR");
         }
 
         let methods: Map<string, Function> = new Map();
@@ -248,7 +255,7 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
 
         let _class = new LSClass(stmt.name.stringify(), superclass, methods, this.errorhandler);
         if (superclass !== null) this.environment = this.environment.enclosing ? this.environment.enclosing : this.environment;
-        this.environment.define(stmt.name, true, _class, "CLASS");
+        this.environment.define(stmt.name, true, _class, null, "CLASS");
     }
 
     visitExpressionStmt(stmt: Expression) {
@@ -257,7 +264,7 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
 
     visitFuncStmt(stmt: Func) {
         let func = new Function(stmt, this.environment, false);
-        this.environment.define(stmt.name, true, func, "FUNCTION");
+        this.environment.define(stmt.name, true, func, null, "FUNCTION");
     }
 
     visitIfStmt(stmt: If) {
@@ -282,9 +289,20 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
 
     visitVarStmt(stmt: Var) {
         let value: TokenValue = null;
-        if (stmt.initializer !== null) value = this.evaluate(stmt.initializer);
+        if (stmt.initializer !== null) {
+            value = this.evaluate(stmt.initializer);
 
-        if (stmt.name.value) this.environment.define(stmt.name, stmt.constant, value, "VAR");
+            let token = this.tokens[this.tokens.findIndex(i => i.line === stmt.name.line && i.rowpos === stmt.name.rowpos) + 4];
+            if (stmt.type === "Number" && typeof value !== "number" ||
+                stmt.type === "String" && typeof value !== "string" ||
+                stmt.type === "Boolean" && typeof value !== "boolean" ||
+                stmt.type === "Null" && value !== null) {
+                let text = `Cannot assign type ${capitilizeFirstLetter((typeof value).toString())} to a variable with type ${stmt.type} on line ${token.line}`;
+                throw this.errorhandler.newError("Type Error", text, token.line, token.rowpos);
+            }
+        }
+
+        if (stmt.name.value) this.environment.define(stmt.name, stmt.constant, value, stmt.type, "VAR");
     }
 
     visitWhileStmt(stmt: While) {

@@ -203,7 +203,7 @@ export class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
 
     visitVarStmt(stmt: Var) {
         this.declare(stmt.name)
-        if (stmt.initializer != null) this.resolve(stmt.initializer);
+        if (stmt.initializer !== null) this.resolve(stmt.initializer);
         this.define(stmt.name);
     }
 
