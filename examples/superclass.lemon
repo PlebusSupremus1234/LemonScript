@@ -4,7 +4,7 @@ class Rectangle {
         self.height = height
     }
 
-    area() { return self.width * self.height }
+    area(): Number { return self.width * self.height }
 }
 
 class Square < Rectangle { # Creating a subclass of Rectangle

@@ -36,7 +36,7 @@ To start LemonScript, run `ts-node index.ts` in the directory. Then, you can eit
 ## Change Log
 Starting from 12/7 because I forgot to do it before
 ```
-25/7: Added multiple types for variables & documentation for it
+25/7: Added multiple types for variables and function returns + documentation for it
 24/7: Added singular static typing for variables
 23/7: New error system, overriding for methods and print fixing
 22/7: Class Inheritance

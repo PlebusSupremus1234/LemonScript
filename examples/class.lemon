@@ -7,9 +7,9 @@ class Circle {
         self.radius = radius
     }
 
-    area() { return pi * self.radius ^ 2 }
-    diameter() { return 2 * self.radius }
-    circumference() { return 2 * pi * self.radius }
+    area(): Number { return pi * self.radius ^ 2 }
+    diameter(): Number { return 2 * self.radius }
+    circumference(): Number { return 2 * pi * self.radius }
 }
 
 const circle = Circle(50, 50, 20)

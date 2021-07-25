@@ -1,7 +1,6 @@
-import { getType } from "../helper"
 import { LSTypes } from "../constants"
 import { Token, TokenValue } from "./token"
-import { capitilizeFirstLetter } from "../helper"
+import { capitilizeFirstLetter, checkType } from "../helper"
 import { ErrorHandler } from "../structures/errorhandler"
 
 type KeyType = "VAR" | "FUNCTION" | "CLASS"
@@ -74,10 +73,7 @@ export class Environment {
                     let text = `Cannot change the value of a constant variable on line ${name.line}`;
                     throw this.errorhandler.newError("Variable Error", text, name.line, name.rowpos);
                 } else {
-                    if ((!key.types.includes("Number") && typeof value === "number") ||
-                        (!key.types.includes("String") && typeof value === "string") ||
-                        (!key.types.includes("Boolean") && typeof value === "boolean") ||
-                        (!key.types.includes("Null") && value === null)) {
+                    if (!checkType(key.types, value)) {
                         let token = tokens[tokens.findIndex(i => i.line === name.line && i.rowpos === name.rowpos) + 2];
                         let type = capitilizeFirstLetter((typeof value).toString());
                         let text = `Cannot assign type ${type} to a variable with type ${key.types.join(" | ")} on line ${token.line}`;

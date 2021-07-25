@@ -55,12 +55,14 @@ export class Func {
     body: Stmt[];
     params: Token[];
     overridden: boolean;
+    returntypes: LSTypes[];
 
-    constructor(name: Token, params: Token[], body: Stmt[], overridden: boolean = false) {
+    constructor(name: Token, params: Token[], returntypes: LSTypes[], body: Stmt[], overridden: boolean = false) {
         this.name = name;
         this.body = body;
         this.params = params;
         this.overridden = overridden;
+        this.returntypes = returntypes;
     }
 
     accept<T>(visitor: Visitor<T>): T { return visitor.visitFuncStmt(this); }

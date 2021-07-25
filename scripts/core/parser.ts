@@ -61,16 +61,17 @@ export class Parser {
         else {
             let token = this.tokens[this.pos];
             if (this.match(["COLON"])) {
-                while (!this.isAtEnd()) {
+                while (true) {
                     token = this.tokens[this.pos];
                     if (this.match(["TYPE"]) && typeof token.value === "string") {
                         types.push(token.value);
                         token = this.tokens[this.pos];
                         if (this.match(["EQUAL"])) initializer = this.expression();
+                        
                         if (token.type !== "PIPE") break;
                         this.advance();
                     } else {
-                        let text = `Expected a valid type after colon on on line ${token.line}`;
+                        let text = `Expected a valid type on line ${token.line}`;
                         throw this.errorhandler.newError("Syntax Error", text, token.line, token.rowpos);
                     }
                 }
@@ -80,7 +81,7 @@ export class Parser {
             }
         }
 
-        return new Var(name, constant, types.length > 0 ? types : ["ANY"], initializer);
+        return new Var(name, constant, types.length > 0 ? types : ["Any"], initializer);
     }
 
     classDeclaration() {
@@ -150,11 +151,29 @@ export class Parser {
 
         if (!this.check("RPAREN")) this.genSyntaxErr(this.tokens[this.pos], `Expected a ')' after parameters`, 0);
         else this.advance();
-        if (!this.check("LBRACE")) this.genSyntaxErr(this.tokens[this.pos - 1], `Expected a '{' before ${kind} body`, 1);
+
+        let returntypes: LSTypes[] = [];
+        if (this.match(["COLON"])) {
+            let token = this.tokens[this.pos];
+            while (true) {
+                token = this.tokens[this.pos];
+                if (this.match(["TYPE"]) && typeof token.value === "string") {
+                    returntypes.push(token.value);
+                    
+                    if (this.tokens[this.pos].type !== "PIPE") break;
+                    this.advance();
+                } else {
+                    let text = `Expected a valid type on line ${token.line}`;
+                    throw this.errorhandler.newError("Syntax Error", text, token.line, token.rowpos);
+                }
+            }
+        }
+
+        if (!this.check("LBRACE")) this.genSyntaxErr(this.tokens[this.pos], `Expected a '{' before ${kind} body`, 0);
         else this.advance();
 
         let body = this.block(this.tokens[this.pos - 1]);
-        return new Func(name, parameters, body, overridden);
+        return new Func(name, parameters, returntypes.length > 0 ? returntypes : ["Any"], body, overridden);
     }
 
     // Functions

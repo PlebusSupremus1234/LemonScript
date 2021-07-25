@@ -8,14 +8,12 @@ import { ErrorHandler } from "../structures/errorhandler"
 export class LSClass implements Callable {
     name: string;
     superclass: LSClass | null;
-    errorhandler: ErrorHandler;
     methods: Map<string, Function>;
 
-    constructor(name: string, superclass: LSClass | null, methods: Map<string, Function>, errorhandler: ErrorHandler) {
+    constructor(name: string, superclass: LSClass | null, methods: Map<string, Function>) {
         this.name = name;
         this.methods = methods;
         this.superclass = superclass;
-        this.errorhandler = errorhandler;
     }
 
     stringify() { return `<class ${this.name}>`; }
@@ -25,10 +23,10 @@ export class LSClass implements Callable {
         return init === null ? 0 : init.arity();
     }
 
-    call(interpreter: Interpreter, token: Token, args: TokenValue[]) {
-        let instance = new Instance(this, this.errorhandler);
+    call(interpreter: Interpreter, token: Token, args: TokenValue[], errorhandler: ErrorHandler) {
+        let instance = new Instance(this, errorhandler);
         let initializer = this.findMethod("init");
-        if (initializer !== null) initializer.bind(token, instance, this.errorhandler).call(interpreter, token, args, this.errorhandler);
+        if (initializer !== null) initializer.bind(token, instance, errorhandler).call(interpreter, token, args, errorhandler);
         return instance;
     }
 

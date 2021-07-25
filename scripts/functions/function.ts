@@ -1,41 +1,67 @@
-import { Callable } from "./callable"
 import { Instance } from "./instance"
+import { Callable } from "./callable"
+import { LSTypes } from "../constants"
 import { Func } from "../structures/stmt"
 import { Token } from "../structures/token"
 import { Interpreter } from "../core/interpreter"
 import { ReturnException } from "./return-exception"
 import { Environment } from "../structures/environment"
 import { ErrorHandler } from "../structures/errorhandler"
+import { getType, checkType, capitilizeFirstLetter } from "../helper"
 
 export class Function implements Callable {
     isInit: boolean;
     declaration: Func;
     closure: Environment;
+    returntypes: LSTypes[];
 
-    constructor(declaration: Func, closure: Environment, isInit: boolean) {
+    constructor(declaration: Func, closure: Environment, isInit: boolean, returntypes: LSTypes[]) {
         this.isInit = isInit;
         this.closure = closure;
         this.declaration = declaration;
+        this.returntypes = returntypes;
     }
 
     bind(token: Token, instance: Instance, errorhandler: ErrorHandler) {
         let environment = new Environment(this.closure, errorhandler);
-        environment.define(new Token("SELF", "self", token.line, token.rowpos), false, instance, "VAR", ["ANY"]);
-        return new Function(this.declaration, environment, this.isInit);
+        environment.define(new Token("SELF", "self", token.line, token.rowpos), false, instance, "VAR", ["Any"]);
+        return new Function(this.declaration, environment, this.isInit, this.returntypes);
     }
 
     arity() { return this.declaration.params.length; }
 
     call(interpreter: Interpreter, token: Token, args: any[], errorhandler: ErrorHandler) {
         let environment = new Environment(this.closure, errorhandler);
-        for (let i = 0; i < this.declaration.params.length; i++) environment.define(this.declaration.params[i], false, args[i], "VAR", ["ANY"]);
+        for (let i = 0; i < this.declaration.params.length; i++) environment.define(this.declaration.params[i], false, args[i], "VAR", ["Any"]);
 
         try { interpreter.executeBlock(this.declaration.body, environment); }
         catch (e) {
-            if (e instanceof ReturnException) return e.value;
-            else throw e;
+            if (e instanceof ReturnException) {
+                if (!checkType(this.returntypes, e.value)) {
+                    let text: string;
+                    let t: Token;
+                    if (e.token) {
+                        t = e.token;
+                        let type = capitilizeFirstLetter(getType(e.value));
+                        text = `Expected return type ${this.returntypes.join(" | ")}, but got type ${type} on line ${t.line}`;
+                    } else {
+                        t = e.keyword;
+                        text = `Expected return type ${this.returntypes.join(" | ")} but didn't recieve a return value on line ${t.line}`;
+                    }
+                    throw errorhandler.newError("Invalid Return Statement", text, t.line, t.rowpos);
+                }
+                return e.value;
+            } else throw e;
         }
+
         if (this.isInit) return this.closure.getAt(0, "self");        
+        
+        if (!checkType(this.returntypes, null)) {
+            let t = this.declaration.name;
+            let text = `Expected return type ${this.returntypes.join(" | ")} but didn't recieve any for function '${t.value}' on line ${t.line}`;
+            throw errorhandler.newError("Invalid Return Statement", text, t.line, t.rowpos);
+        }
+
         return null;
     }
 

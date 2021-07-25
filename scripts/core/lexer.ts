@@ -86,19 +86,19 @@ export class Lexer {
             case "|": this.addToken("PIPE"); break;
             case "!":
                 if (this.next("=")) this.addToken("BANGEQUAL", "!=", this.rowpos - 1);
-                else this.addToken("BANG", "!", this.rowpos - 1);
+                else this.addToken("BANG", "!", this.rowpos);
                 break;
             case "=":
                 if (this.next("=")) this.addToken("EQUALEQUAL", "==", this.rowpos - 1);
-                else this.addToken("EQUAL", "=", this.rowpos - 1);
+                else this.addToken("EQUAL", "=", this.rowpos);
                 break;
             case "<":
                 if (this.next("=")) this.addToken("LESSEQUAL", "<=", this.rowpos - 1);
-                else this.addToken("LESS", "<", this.rowpos - 1);
+                else this.addToken("LESS", "<", this.rowpos);
                 break;
             case ">":
                 if (this.next("=")) this.addToken("GREATEREQUAL", ">=", this.rowpos - 1);
-                else this.addToken("GREATER", ">", this.rowpos - 1);
+                else this.addToken("GREATER", ">", this.rowpos);
                 break;
             case "#": // Comment Line
                 while (this.peek() !== "\n" && !this.isAtEnd()) this.advance();

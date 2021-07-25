@@ -42,7 +42,7 @@ In LemonScript, there are two different types of variables, constant, and mutabl
 ```
 The keyword is either `var` or `const`. Var is the mutable, and const is the constant. The variable name has to start with an alphabetical letter or an underscore, then can be any character. It cannot contain spaces. 
 
-The value can be an expression, value, or even another variable. For example a number or a string. Without the value, the variable's value is automatically set to `null`. 
+The value can be an expression, value, or even another variable. For example a number or a string. Without the value, the variable's value is automatically set to `null`. You can also add types to the variable. You can find more information about this [here](https://github.com/PlebusSupremus1234/LemonScript/blob/master/documentation.md#types).
 
 Something to keep in mind when using variables is the scope. A variable is only avaliable in the scope, and cannot be accessed outside it. For example:
 ```js
@@ -67,7 +67,10 @@ a = 12 # This will error because 'a' is a constant variable
 ```
 
 ## Types
-In LemonScript, a value or an output can have types. The types can are `Any`, `Number`, `String`, `Boolean` and `Null`. By default, the type is set to `Any`. Which means it can be any type, for example `"hello"` or `true` or `12`. Setting a type is good because it won't allow for type errors anywhere in your program and often prevents variables from changing types, which further defends against unintended errors. To set a type for a variable, you can use the following syntax:
+In LemonScript, a value or an output can have types. The types can are `Any`, `Number`, `String`, `Boolean` and `Null`. By default, the type is set to `Any`. Which means it can be any type, for example `"hello"` or `true` or `12`. Setting a type is good because it won't allow for type errors anywhere in your program and often prevents variables from changing types, which further defends against unintended errors. 
+
+### Variable Types
+To set a type for a variable, you can use the following syntax:
 ```js
 var [variable_name]: [type] = [value]
 ```
@@ -76,6 +79,14 @@ If you set the variable's type to, for example `Number`, then the compiler will 
 var [variable_name]: [type1] | [type2] ... = [value]
 ```
 This means a variable can be either type, although sometimes, this isn't the best practice. 
+
+### Function Types
+In LemonScript, functions can have types too. You can set a return type for a function. The compiler will throw an error if it recieves a return type that doesn't match the function's type. You can set the types to a function like this:
+```js
+func [function_name]([args]): [type1] | [type2] ... {
+    [code]
+}
+```
 
 ## Comments
 A comment is a line of text that is ignored by the interpreter. It's useful for adding notes to describe what's going on, or to remove a bit of code from being executed. In LemonScript, you can comment using `#`. For example:

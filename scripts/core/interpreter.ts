@@ -1,7 +1,7 @@
 import { Environment } from "../structures/environment"
 import { Token, TokenValue } from "../structures/token"
 import { ErrorHandler } from "../structures/errorhandler"
-import { capitilizeFirstLetter, getType } from "../helper"
+import { capitilizeFirstLetter, getType, checkType } from "../helper"
 
 import { LSClass } from "../functions/class"
 import { Callable } from "../functions/callable"
@@ -238,7 +238,7 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
             let s = <Token>stmt.superclass.name;
             let index = this.tokens.findIndex(i => i.line === s.line && i.rowpos === s.rowpos);
             let token = this.tokens[index + 2];
-            this.environment.define(new Token("SUPER", "super", token.line, token.rowpos), true, superclass, "VAR", []);
+            this.environment.define(new Token("SUPER", "super", token.line, token.rowpos), true, superclass, "VAR", ["ANY"]);
         }
 
         let methods: Map<string, Function> = new Map();
@@ -249,13 +249,13 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
                 text = `You can override it with a 'override' keyword in front of the method name`;
                 throw this.errorhandler.newHelp(text);
             }
-            let func = new Function(method, this.environment, method.name.stringify() === "init");
+            let func = new Function(method, this.environment, method.name.stringify() === "init", method.returntypes);
             methods.set(method.name.stringify(), func);
         }
 
-        let _class = new LSClass(stmt.name.stringify(), superclass, methods, this.errorhandler);
+        let _class = new LSClass(stmt.name.stringify(), superclass, methods);
         if (superclass !== null) this.environment = this.environment.enclosing ? this.environment.enclosing : this.environment;
-        this.environment.define(stmt.name, true, _class, "CLASS", []);
+        this.environment.define(stmt.name, true, _class, "CLASS", ["ANY"]);
     }
 
     visitExpressionStmt(stmt: Expression) {
@@ -263,8 +263,8 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
     }
 
     visitFuncStmt(stmt: Func) {
-        let func = new Function(stmt, this.environment, false);
-        this.environment.define(stmt.name, true, func, "FUNCTION", []);
+        let func = new Function(stmt, this.environment, false, stmt.returntypes);
+        this.environment.define(stmt.name, true, func, "FUNCTION", ["ANY"]);
     }
 
     visitIfStmt(stmt: If) {
@@ -284,19 +284,16 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
         let value: TokenValue = null;
         if (stmt.value !== null) value = this.evaluate(stmt.value); 
 
-        throw new ReturnException(value);
+        let token = stmt.value ? this.tokens[this.tokens.findIndex(i => i.line === stmt.keyword.line && i.rowpos === stmt.keyword.rowpos) + 1] : null;
+        throw new ReturnException(value, stmt.keyword, token);
     }
 
     visitVarStmt(stmt: Var) {
         let value: TokenValue = null;
         if (stmt.initializer !== null) {
             value = this.evaluate(stmt.initializer);
-
             let token = this.tokens[this.tokens.findIndex(i => i.line === stmt.name.line && i.rowpos === stmt.name.rowpos) + 4];
-            if ((!stmt.types.includes("Number") && typeof value === "number") ||
-                (!stmt.types.includes("String") && typeof value === "string") ||
-                (!stmt.types.includes("Boolean") && typeof value === "boolean") ||
-                (!stmt.types.includes("Null") && value === null)) {
+            if (!checkType(stmt.types, value)) {
                 let type = capitilizeFirstLetter((typeof value).toString());
                 let text = `Cannot assign type ${type} to a variable with type ${stmt.types.join(" | ")} on line ${token.line}`;
                 throw this.errorhandler.newError("Type Error", text, token.line, token.rowpos);
