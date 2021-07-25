@@ -3,6 +3,7 @@
 ## Contents:
 - [Binary Operators](https://github.com/PlebusSupremus1234/LemonScript/blob/master/documentation.md#binary-operators)
 - [Variables](https://github.com/PlebusSupremus1234/LemonScript/blob/master/documentation.md#variables)
+- [Types](https://github.com/PlebusSupremus1234/LemonScript/blob/master/documentation.md#types)
 - [Comments](https://github.com/PlebusSupremus1234/LemonScript/blob/master/documentation.md#comments)
 - [Print Function](https://github.com/PlebusSupremus1234/LemonScript/blob/master/documentation.md#print-function)
 - [If/Else Statements](https://github.com/PlebusSupremus1234/LemonScript/blob/master/documentation.md#ifelse-statements)
@@ -62,8 +63,19 @@ print(a) # 5
 const b = a * 2
 print(b) # 10
 
-a = 12 # This will error because a is a constant variable
+a = 12 # This will error because 'a' is a constant variable
 ```
+
+## Types
+In LemonScript, a value or an output can have types. The types can are `Any`, `Number`, `String`, `Boolean` and `Null`. By default, the type is set to `Any`. Which means it can be any type, for example `"hello"` or `true` or `12`. Setting a type is good because it won't allow for type errors anywhere in your program and often prevents variables from changing types, which further defends against unintended errors. To set a type for a variable, you can use the following syntax:
+```js
+var [variable_name]: [type] = [value]
+```
+If you set the variable's type to, for example `Number`, then the compiler will error when a value is set to another type. You can also set multiple types to a variable using the `|` symbol:
+```js
+var [variable_name]: [type1] | [type2] ... = [value]
+```
+This means a variable can be either type, although sometimes, this isn't the best practice. 
 
 ## Comments
 A comment is a line of text that is ignored by the interpreter. It's useful for adding notes to describe what's going on, or to remove a bit of code from being executed. In LemonScript, you can comment using `#`. For example:

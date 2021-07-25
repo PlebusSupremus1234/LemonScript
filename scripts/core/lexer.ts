@@ -83,6 +83,7 @@ export class Lexer {
             case ";": this.addToken("SEMICOLON"); break;
             case ".": this.addToken("DOT"); break;
             case ",": this.addToken("COMMA"); break;
+            case "|": this.addToken("PIPE"); break;
             case "!":
                 if (this.next("=")) this.addToken("BANGEQUAL", "!=", this.rowpos - 1);
                 else this.addToken("BANG", "!", this.rowpos - 1);

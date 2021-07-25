@@ -55,20 +55,24 @@ export class Parser {
         }
 
         let initializer: Expr | null = null;
-        let type: LSTypes = "ANY";
+        let types: LSTypes[] = [];
 
         if (this.match(["EQUAL"])) initializer = this.expression();
         else {
             let token = this.tokens[this.pos];
             if (this.match(["COLON"])) {
-                token = this.tokens[this.pos];
-                if (this.match(["TYPE"]) && typeof token.value === "string") {
-                    type = token.value;
+                while (!this.isAtEnd()) {
                     token = this.tokens[this.pos];
-                    if (this.match(["EQUAL"])) initializer = this.expression();
-                } else {
-                    let text = `Expected a valid type after colon on on line ${token.line}`;
-                    throw this.errorhandler.newError("Syntax Error", text, token.line, token.rowpos);
+                    if (this.match(["TYPE"]) && typeof token.value === "string") {
+                        types.push(token.value);
+                        token = this.tokens[this.pos];
+                        if (this.match(["EQUAL"])) initializer = this.expression();
+                        if (token.type !== "PIPE") break;
+                        this.advance();
+                    } else {
+                        let text = `Expected a valid type after colon on on line ${token.line}`;
+                        throw this.errorhandler.newError("Syntax Error", text, token.line, token.rowpos);
+                    }
                 }
             } else {
                 let text = `Unexpected token '${token.stringify()}' detected on line ${token.line}`;
@@ -76,7 +80,7 @@ export class Parser {
             }
         }
 
-        return new Var(name, constant, type, initializer);
+        return new Var(name, constant, types.length > 0 ? types : ["ANY"], initializer);
     }
 
     classDeclaration() {

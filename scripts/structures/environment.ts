@@ -5,11 +5,10 @@ import { capitilizeFirstLetter } from "../helper"
 import { ErrorHandler } from "../structures/errorhandler"
 
 type KeyType = "VAR" | "FUNCTION" | "CLASS"
-type varValType = LSTypes | null;
 type VarKey = {
     constant: boolean;
-    vartype: KeyType;
-    type: varValType;
+    type: KeyType;
+    types: LSTypes[];
     value: TokenValue;
 }
 
@@ -23,13 +22,13 @@ export class Environment {
         if (enclosing) this.enclosing = enclosing;
     }
 
-    define(name: Token, constant: boolean, value: TokenValue, type: varValType, vartype: KeyType) {
+    define(name: Token, constant: boolean, value: TokenValue, type: KeyType, types: LSTypes[]) {
         let key = this.values.get(name.stringify());
-        if (key && key.vartype !== "VAR") {
-            let text = `Cannot redefine ${key.vartype.toLowerCase()} '${name.stringify()}' on line ${name.line}`;
-            throw this.errorhandler.newError(`Invalid ${capitilizeFirstLetter(key.vartype.toLowerCase())} Declaration`, text, name.line, name.rowpos);
+        if (key && key.type !== "VAR") {
+            let text = `Cannot redefine ${key.type.toLowerCase()} '${name.stringify()}' on line ${name.line}`;
+            throw this.errorhandler.newError(`Invalid ${capitilizeFirstLetter(key.type.toLowerCase())} Declaration`, text, name.line, name.rowpos);
         }
-        this.values.set(name.stringify(), { constant, value, type, vartype });
+        this.values.set(name.stringify(), { constant, value, type, types });
     }
 
     ancestor(distance: number) {
@@ -75,15 +74,16 @@ export class Environment {
                     let text = `Cannot change the value of a constant variable on line ${name.line}`;
                     throw this.errorhandler.newError("Variable Error", text, name.line, name.rowpos);
                 } else {
-                    if (key.type === "Number" && typeof value !== "number" ||
-                        key.type === "String" && typeof value !== "string" ||
-                        key.type === "Boolean" && typeof value !== "boolean" ||
-                        key.type === "Null" && value !== null) {
+                    if ((!key.types.includes("Number") && typeof value === "number") ||
+                        (!key.types.includes("String") && typeof value === "string") ||
+                        (!key.types.includes("Boolean") && typeof value === "boolean") ||
+                        (!key.types.includes("Null") && value === null)) {
                         let token = tokens[tokens.findIndex(i => i.line === name.line && i.rowpos === name.rowpos) + 2];
-                        let text = `Cannot assign type ${capitilizeFirstLetter((typeof value).toString())} to a variable with type ${key.type} on line ${token.line}`;
+                        let type = capitilizeFirstLetter((typeof value).toString());
+                        let text = `Cannot assign type ${type} to a variable with type ${key.types.join(" | ")} on line ${token.line}`;
                         throw this.errorhandler.newError("Type Error", text, token.line, token.rowpos);
                     }
-                    collection.set(name.stringify(), { constant: false, value, type: key.type, vartype: key.vartype });
+                    collection.set(name.stringify(), { constant: false, value, type: key.type, types: key.types });
                 }
             } else if (this.enclosing && !ancestor) this.enclosing.assign(name, value, tokens);
             else {

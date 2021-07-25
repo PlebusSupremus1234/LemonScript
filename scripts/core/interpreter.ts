@@ -238,7 +238,7 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
             let s = <Token>stmt.superclass.name;
             let index = this.tokens.findIndex(i => i.line === s.line && i.rowpos === s.rowpos);
             let token = this.tokens[index + 2];
-            this.environment.define(new Token("SUPER", "super", token.line, token.rowpos), true, superclass, null, "VAR");
+            this.environment.define(new Token("SUPER", "super", token.line, token.rowpos), true, superclass, "VAR", []);
         }
 
         let methods: Map<string, Function> = new Map();
@@ -255,7 +255,7 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
 
         let _class = new LSClass(stmt.name.stringify(), superclass, methods, this.errorhandler);
         if (superclass !== null) this.environment = this.environment.enclosing ? this.environment.enclosing : this.environment;
-        this.environment.define(stmt.name, true, _class, null, "CLASS");
+        this.environment.define(stmt.name, true, _class, "CLASS", []);
     }
 
     visitExpressionStmt(stmt: Expression) {
@@ -264,7 +264,7 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
 
     visitFuncStmt(stmt: Func) {
         let func = new Function(stmt, this.environment, false);
-        this.environment.define(stmt.name, true, func, null, "FUNCTION");
+        this.environment.define(stmt.name, true, func, "FUNCTION", []);
     }
 
     visitIfStmt(stmt: If) {
@@ -293,16 +293,17 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
             value = this.evaluate(stmt.initializer);
 
             let token = this.tokens[this.tokens.findIndex(i => i.line === stmt.name.line && i.rowpos === stmt.name.rowpos) + 4];
-            if (stmt.type === "Number" && typeof value !== "number" ||
-                stmt.type === "String" && typeof value !== "string" ||
-                stmt.type === "Boolean" && typeof value !== "boolean" ||
-                stmt.type === "Null" && value !== null) {
-                let text = `Cannot assign type ${capitilizeFirstLetter((typeof value).toString())} to a variable with type ${stmt.type} on line ${token.line}`;
+            if ((!stmt.types.includes("Number") && typeof value === "number") ||
+                (!stmt.types.includes("String") && typeof value === "string") ||
+                (!stmt.types.includes("Boolean") && typeof value === "boolean") ||
+                (!stmt.types.includes("Null") && value === null)) {
+                let type = capitilizeFirstLetter((typeof value).toString());
+                let text = `Cannot assign type ${type} to a variable with type ${stmt.types.join(" | ")} on line ${token.line}`;
                 throw this.errorhandler.newError("Type Error", text, token.line, token.rowpos);
             }
         }
 
-        if (stmt.name.value) this.environment.define(stmt.name, stmt.constant, value, stmt.type, "VAR");
+        if (stmt.name.value) this.environment.define(stmt.name, stmt.constant, value, "VAR", stmt.types);
     }
 
     visitWhileStmt(stmt: While) {

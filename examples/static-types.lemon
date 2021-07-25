@@ -1,5 +1,11 @@
-var test: Number = 50
+var test: Number | String = 50
 
-test = "string" # should error
+print(test)
+
+test = "string"
+
+print(test)
+
+test = false # should error
 
 print(test)

@@ -20,7 +20,7 @@ export class Function implements Callable {
 
     bind(token: Token, instance: Instance, errorhandler: ErrorHandler) {
         let environment = new Environment(this.closure, errorhandler);
-        environment.define(new Token("SELF", "self", token.line, token.rowpos), false, instance, null, "VAR");
+        environment.define(new Token("SELF", "self", token.line, token.rowpos), false, instance, "VAR", ["ANY"]);
         return new Function(this.declaration, environment, this.isInit);
     }
 
@@ -28,7 +28,7 @@ export class Function implements Callable {
 
     call(interpreter: Interpreter, token: Token, args: any[], errorhandler: ErrorHandler) {
         let environment = new Environment(this.closure, errorhandler);
-        for (let i = 0; i < this.declaration.params.length; i++) environment.define(this.declaration.params[i], false, args[i], null, "VAR");
+        for (let i = 0; i < this.declaration.params.length; i++) environment.define(this.declaration.params[i], false, args[i], "VAR", ["ANY"]);
 
         try { interpreter.executeBlock(this.declaration.body, environment); }
         catch (e) {
