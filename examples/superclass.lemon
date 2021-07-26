@@ -1,5 +1,5 @@
 class Rectangle {
-    init(width, height) {
+    init(width: Number, height: Number) {
         self.width = width
         self.height = height
     }
@@ -8,7 +8,7 @@ class Rectangle {
 }
 
 class Square < Rectangle { # Creating a subclass of Rectangle
-    init(length) {
+    init(length: Number) {
         super.init(length, length) # Calling the Rectangle init because that is the super
     }
 }

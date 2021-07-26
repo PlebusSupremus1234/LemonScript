@@ -1,3 +1,5 @@
+import { Funcs } from "./visitors/funcs"
+
 const symbols = [
     "PLUS", "MINUS", "MUL", "DIV", "MOD", "CARET",
     "LPAREN", "RPAREN", "LBRACE", "RBRACE", "LBRACKET", "RBRACKET", "COLON", "SEMICOLON", "DOT", "COMMA", "PIPE",
@@ -5,7 +7,16 @@ const symbols = [
 ];
 const types = ["NUMBER", "STRING"];
 const other = ["INDENTIFIER", "TYPE", "EOF"];
-const keywords = ["AND", "CLASS", "CONST", "ELSE", "FALSE", "FOR", "FUNC", "IF", "NULL", "OR", "OVERRIDE", "PRINT", "RETURN", "SELF", "SUPER", "TRUE", "VAR", "WHILE"];
+const keywords = [
+    "AND", "OR",
+    "CLASS", "FUNC",
+    "OVERRIDE", "RETURN", "SELF", "SUPER",
+    "CONST", "VAR",
+    "IF", "ELSE", "FOR", "WHILE",
+    "TRUE", "FALSE", "NULL",
+    ...Funcs
+];
+
 const tokentypes = [...symbols, ...types, ...other, ...keywords] as const
 
 export type TokenType = typeof tokentypes[number];

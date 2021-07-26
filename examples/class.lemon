@@ -1,7 +1,7 @@
 const pi = 3.1415926
 
 class Circle {
-    init(x, y, radius) {
+    init(x: Number, y: Number, radius: Number) {
         self.x = x
         self.y = y
         self.radius = radius

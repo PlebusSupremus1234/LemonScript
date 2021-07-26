@@ -81,12 +81,22 @@ var [variable_name]: [type1] | [type2] ... = [value]
 This means a variable can be either type, although sometimes, this isn't the best practice. 
 
 ### Function Types
-In LemonScript, functions can have types too. You can set a return type for a function. The compiler will throw an error if it recieves a return type that doesn't match the function's type. You can set the types to a function like this:
+In LemonScript, functions can have types too. Firstly, lets talk about the function return types. The compiler will throw an error if it recieves a return type that doesn't match the function's return type. You can set the types to a function like this:
 ```js
 func [function_name]([args]): [type1] | [type2] ... {
     [code]
 }
 ```
+
+You can also set types for the arguments of a function. For example:
+```js
+func addNums(num1: Number, num2: Number): Number {
+    return num1 + num2
+}
+
+print(addNums(1, "two"))
+```
+This script will error because the second argument passed into the `addNums` function is not a number type, as required in the function args. 
 
 ## Comments
 A comment is a line of text that is ignored by the interpreter. It's useful for adding notes to describe what's going on, or to remove a bit of code from being executed. In LemonScript, you can comment using `#`. For example:
@@ -116,7 +126,7 @@ if ([condition]) {
     [code]
 }
 ```
-The code will execute if the condition is truthy. You can also couple an else statement at the end like:
+The code will execute if the condition is [truthy](https://github.com/PlebusSupremus1234/LemonScript/blob/master/documentation.md#truthy). You can also couple an else statement at the end like:
 ```js
 if ([condition]) {
     [code]
@@ -124,7 +134,7 @@ if ([condition]) {
     [code]
 }
 ```
-The code in the else statement will execute if the condition isnt truthy.
+The code in the else statement will execute if the condition isnt [truthy](https://github.com/PlebusSupremus1234/LemonScript/blob/master/documentation.md#truthy).
 
 ## While Loop
 To write a while loop, you can use the `while` keyword with this syntax:
@@ -133,7 +143,7 @@ while ([condition]) {
     [code]
 }
 ```
-As the name implies, while the condition is truthy, the code will execute. Be careful with this, as sometimes this can cause an infinite loop. 
+As the name implies, while the condition is [truthy](https://github.com/PlebusSupremus1234/LemonScript/blob/master/documentation.md#truthy), the code will execute. Be careful with this, as sometimes this can cause an infinite loop. 
 
 ## For Loop
 A for loop is a refactored while loop with a different syntax:
@@ -257,3 +267,6 @@ For safety reasons, if you try to override an existing superclass method in the 
 ```js
 override [method name]([args]) {}
 ```
+
+### Truthiness
+In LemonScript, everything (strings, numbers etc) is truthy except the values `false` and `null`. 

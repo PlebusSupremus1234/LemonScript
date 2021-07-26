@@ -1,4 +1,4 @@
-func isPrime(num): Boolean {
+func isPrime(num: Number): Boolean {
     for (var i = 2; i < num; i = i + 1) {
         if (num % i == 0) return false
     }

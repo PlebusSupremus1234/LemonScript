@@ -105,10 +105,12 @@ export class Lexer {
                 this.advance();
                 break;
             case '"': // String
+            case "'":
+                let ending = this.currentChar;
                 let start = this.pos + 1;
                 let rowstart = this.rowpos;
                 let linestart = this.line;
-                while (this.peek() !== '"' && !this.isAtEnd()) this.advance();
+                while (this.peek() !== ending && !this.isAtEnd()) this.advance();
                 if (this.pos >= this.ftext.length || this.line !== linestart) this.genError(`String on line ${linestart} has no ending`, rowstart, linestart);
                 this.advance();
                 this.addToken("STRING", this.ftext.substring(start, this.pos), rowstart, linestart);
@@ -125,6 +127,8 @@ export class Lexer {
                     else this.addToken("IDENTIFIER", text, rowstart);
                 } else if ("0123456789".includes(this.currentChar)) { // Number
                     let start = this.pos;
+                    let rowstart = this.rowpos;
+
                     while ("0123456789".includes(this.peek())) this.advance();                
                     if (this.peek() === ".") {
                         if ("0123456789".includes(this.ftext[this.pos + 2])) {
@@ -136,7 +140,7 @@ export class Lexer {
                             this.genError(`Illegal Character '${this.currentChar}' detected on line ${this.line}`, this.rowpos);
                         }
                     }
-                    this.addToken("NUMBER", parseFloat(this.ftext.substring(start, this.pos + 1)));
+                    this.addToken("NUMBER", parseFloat(this.ftext.substring(start, this.pos + 1)), rowstart);
                 } else this.genError(`Illegal Character '${this.currentChar}' detected on line ${this.line}`, this.rowpos);
         }
     }

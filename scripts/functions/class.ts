@@ -3,7 +3,6 @@ import { Instance } from "./instance"
 import { Function } from "./function"
 import { Interpreter } from "../core/interpreter"
 import { Token, TokenValue } from "../structures/token"
-import { ErrorHandler } from "../structures/errorhandler"
 
 export class LSClass implements Callable {
     name: string;
@@ -23,10 +22,10 @@ export class LSClass implements Callable {
         return init === null ? 0 : init.arity();
     }
 
-    call(interpreter: Interpreter, token: Token, args: TokenValue[], errorhandler: ErrorHandler) {
-        let instance = new Instance(this, errorhandler);
+    call(interpreter: Interpreter, token: Token, args: TokenValue[]) {
+        let instance = new Instance(this, interpreter.errorhandler);
         let initializer = this.findMethod("init");
-        if (initializer !== null) initializer.bind(token, instance, errorhandler).call(interpreter, token, args, errorhandler);
+        if (initializer !== null) initializer.bind(token, instance, interpreter.errorhandler).call(interpreter, token, args);
         return instance;
     }
 

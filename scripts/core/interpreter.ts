@@ -1,7 +1,7 @@
 import { Environment } from "../structures/environment"
 import { Token, TokenValue } from "../structures/token"
 import { ErrorHandler } from "../structures/errorhandler"
-import { capitilizeFirstLetter, getType, checkType } from "../helper"
+import { capitilizeFirstLetter, isTruthy, getType, checkType } from "../helper"
 
 import { LSClass } from "../functions/class"
 import { Callable } from "../functions/callable"
@@ -9,10 +9,11 @@ import { Function } from "../functions/function"
 import { Instance } from "../functions/instance"
 import { ReturnException } from "../functions/return-exception"
 
-import { Visitor as StmtVisitor, Stmt, Block, Class, Expression, Func, If, Print, Return, Var, While } from "../structures/stmt"
-import { Visitor as ExprVisitor, Expr, Assign, Binary, Call, Get, Grouping, Literal, Logical, Self, Set, Super, Unary, Variable } from "../structures/expr"
+import { Visitor as FuncVisitor, Print, Typeof } from "../visitors/funcs"
+import { Visitor as StmtVisitor, Stmt, Block, Class, Expression, Func, If, Return, Var, While } from "../visitors/stmt"
+import { Visitor as ExprVisitor, Expr, Assign, Binary, Call, Get, Grouping, Literal, Logical, Self, Set, Super, Unary, Variable } from "../visitors/expr"
 
-export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
+export class Interpreter implements ExprVisitor<TokenValue>, FuncVisitor, StmtVisitor<void> {
     tokens: Token[];
     globals: Environment;
     environment: Environment;
@@ -29,7 +30,7 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
     interpret(statements: Stmt[]) {
         for (let statement of statements) {
             try { this.execute(statement); }
-            catch(e) { return console.log(this.errorhandler.stringify()); }
+            catch(e) { console.log(e);return console.log(this.errorhandler.stringify()); }
         }
     }
 
@@ -123,9 +124,21 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
 
     visitCallExpr(expr: Call) {
         let callee = this.evaluate(expr.callee);
+        let token: Token;
         
+        if (expr.callee instanceof Variable) token = (expr.callee as Variable).name;
+        else if (expr.callee instanceof Super) token = (expr.callee as Super).method;
+        else token = (expr.callee as Get).name;
+
+        let idx = this.tokens.findIndex(i => i.line === token.line && i.rowpos === token.rowpos) + 2;
+
         let args = [];
-        for (let arg of expr.args) args.push(this.evaluate(arg));
+        for (let arg of expr.args) {
+            args.push({ token: this.tokens[idx], value: this.evaluate(arg) });
+
+            while (this.tokens[idx] && this.tokens[idx].type !== "COMMA") idx++;
+            idx++;
+        }
 
         let index = this.tokens.findIndex(i => i.line === expr.paren.line && i.rowpos === expr.paren.rowpos);
         let current = this.tokens[index - 2];
@@ -135,7 +148,7 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
         current = this.tokens[index];
         if (args.length !== fn.arity()) throw this.functionErr(`Expected ${fn.arity()} arguments but got ${args.length}`, "Call", current.line, current.rowpos);
 
-        return fn.call(this, current, args, this.errorhandler);
+        return fn.call(this, current, args);
     }
 
     visitGetExpr(expr: Get) {
@@ -155,9 +168,9 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
         let left = this.evaluate(expr.left);
 
         if (expr.operator.type === "OR") {
-            if (left) return left;
+            if (isTruthy(left)) return left;
         } else {
-            if (!left) return left;
+            if (!isTruthy(left)) return left;
         }
 
         return this.evaluate(expr.right);
@@ -209,13 +222,26 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
         let rightRaw = this.evaluate(expr.right);
         let right = rightRaw !== null ? rightRaw.toString() : "null";
 
-        if (expr.operator.type === "BANG") return !rightRaw;
+        if (expr.operator.type === "BANG") return !isTruthy(rightRaw);
         if (expr.operator.type === "MINUS") return -(parseFloat(right));
 
         return null;
     }
 
     visitVariableExpr(expr: Variable) { return this.lookupVariable(expr.name, expr); }
+
+    // Visit Built in Functions
+    visitPrintFunc(stmt: Print) {
+        let value = this.evaluate(stmt.expression);
+        if (value instanceof Function || value instanceof LSClass || value instanceof Instance) value = value.stringify();
+
+        console.log(value);
+    }
+
+    visitTypeofFunc(expr: Typeof) {
+        let value = this.evaluate(expr.expression);
+        return capitilizeFirstLetter(getType(value));
+    }
 
     // Visit Statements
     visitBlockStmt(stmt: Block) {
@@ -258,9 +284,7 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
         this.environment.define(stmt.name, true, _class, "CLASS", ["ANY"]);
     }
 
-    visitExpressionStmt(stmt: Expression) {
-        this.evaluate(stmt.expression);
-    }
+    visitExpressionStmt(stmt: Expression) { this.evaluate(stmt.expression); }
 
     visitFuncStmt(stmt: Func) {
         let func = new Function(stmt, this.environment, false, stmt.returntypes);
@@ -268,16 +292,9 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
     }
 
     visitIfStmt(stmt: If) {
-        if (this.evaluate(stmt.condition)) this.execute(stmt.thenBranch);
+        if (isTruthy(this.evaluate(stmt.condition))) this.execute(stmt.thenBranch);
         else if (stmt.elseBranch !== null) this.execute(stmt.elseBranch);
         return null;
-    }
-
-    visitPrintStmt(stmt: Print) {
-        let value = this.evaluate(stmt.expression);
-        if (value instanceof Function || value instanceof LSClass || value instanceof Instance) value = value.stringify();
-
-        console.log(value);
     }
 
     visitReturnStmt(stmt: Return) {
@@ -304,7 +321,7 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
     }
 
     visitWhileStmt(stmt: While) {
-        while (this.evaluate(stmt.condition)) this.execute(stmt.body);
+        while (isTruthy(this.evaluate(stmt.condition))) this.execute(stmt.body);
     }
 
     // Other

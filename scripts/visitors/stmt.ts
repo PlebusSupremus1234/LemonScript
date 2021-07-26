@@ -1,6 +1,8 @@
+import { FuncStmts } from "./funcs"
+import { LSTypes } from "../constants"
 import { Expr, Variable } from "./expr"
 import { Token } from "../structures/token"
-import { LSTypes } from "../constants"
+import { FuncArgs } from "../functions/function"
 
 export interface Visitor<T> {
     visitBlockStmt: (stmt: Block) => T;
@@ -8,20 +10,18 @@ export interface Visitor<T> {
     visitExpressionStmt: (stmt: Expression) => T;
     visitFuncStmt: (stmt: Func) => T;
     visitIfStmt: (stmt: If) => T;
-    visitPrintStmt: (stmt: Print) => T;
     visitReturnStmt: (stmt: Return) => T;
     visitVarStmt: (stmt: Var) => T;
     visitWhileStmt: (stmt: While) => T;
 }
 
-export type Stmt = Block | Class | Expression | Func | If | Print | Return | Var | While;
+type Stmts = Block | Class | Expression | Func | If | Return | Var | While;
+export type Stmt = Stmts | FuncStmts;
 
 export class Block {
     statements: Stmt[];
 
-    constructor(statements: Stmt[]) {
-        this.statements = statements;
-    }
+    constructor(statements: Stmt[]) { this.statements = statements; }
 
     accept<T>(visitor: Visitor<T>): T { return visitor.visitBlockStmt(this); }
 }
@@ -43,9 +43,7 @@ export class Class {
 export class Expression {
     expression: Expr;
 
-    constructor(expression: Expr) {
-        this.expression = expression;
-    }
+    constructor(expression: Expr) { this.expression = expression; }
 
     accept<T>(visitor: Visitor<T>): T { return visitor.visitExpressionStmt(this); }
 }
@@ -53,11 +51,11 @@ export class Expression {
 export class Func {
     name: Token;
     body: Stmt[];
-    params: Token[];
+    params: FuncArgs[];
     overridden: boolean;
     returntypes: LSTypes[];
 
-    constructor(name: Token, params: Token[], returntypes: LSTypes[], body: Stmt[], overridden: boolean = false) {
+    constructor(name: Token, params: FuncArgs[], returntypes: LSTypes[], body: Stmt[], overridden: boolean = false) {
         this.name = name;
         this.body = body;
         this.params = params;
@@ -80,16 +78,6 @@ export class If {
     }
 
     accept<T>(visitor: Visitor<T>): T { return visitor.visitIfStmt(this); }
-}
-
-export class Print {
-    expression: Expr;
-
-    constructor(expression: Expr) {
-        this.expression = expression;
-    }
-
-    accept<T>(visitor: Visitor<T>): T { return visitor.visitPrintStmt(this); }
 }
 
 export class Return {

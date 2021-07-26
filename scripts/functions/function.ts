@@ -1,13 +1,18 @@
 import { Instance } from "./instance"
 import { Callable } from "./callable"
 import { LSTypes } from "../constants"
-import { Func } from "../structures/stmt"
+import { Func } from "../visitors/stmt"
 import { Token } from "../structures/token"
 import { Interpreter } from "../core/interpreter"
 import { ReturnException } from "./return-exception"
 import { Environment } from "../structures/environment"
 import { ErrorHandler } from "../structures/errorhandler"
 import { getType, checkType, capitilizeFirstLetter } from "../helper"
+
+export type FuncArgs = {
+    name: Token;
+    types: LSTypes[];
+};
 
 export class Function implements Callable {
     isInit: boolean;
@@ -30,9 +35,18 @@ export class Function implements Callable {
 
     arity() { return this.declaration.params.length; }
 
-    call(interpreter: Interpreter, token: Token, args: any[], errorhandler: ErrorHandler) {
-        let environment = new Environment(this.closure, errorhandler);
-        for (let i = 0; i < this.declaration.params.length; i++) environment.define(this.declaration.params[i], false, args[i], "VAR", ["Any"]);
+    call(interpreter: Interpreter, token: Token, args: any[]) {
+        let environment = new Environment(this.closure, interpreter.errorhandler);
+        for (let i = 0; i < this.declaration.params.length; i++) {
+            let param = this.declaration.params[i];
+            if (!checkType(this.declaration.params[i].types, args[i].value)) {
+                let expected = param.types.join(" | ");
+                let name = param.name.stringify();
+                let text = `Expected type ${expected} for argument '${name}' but recieved type ${capitilizeFirstLetter(getType(args[i].value))} on line ${args[i].token.line}`;
+                throw interpreter.errorhandler.newError("Invalid Function Call", text, args[i].token.line, args[i].token.rowpos);
+            }
+            environment.define(param.name, false, args[i].value, "VAR", ["Any"]);
+        }
 
         try { interpreter.executeBlock(this.declaration.body, environment); }
         catch (e) {
@@ -48,7 +62,7 @@ export class Function implements Callable {
                         t = e.keyword;
                         text = `Expected return type ${this.returntypes.join(" | ")} but didn't recieve a return value on line ${t.line}`;
                     }
-                    throw errorhandler.newError("Invalid Return Statement", text, t.line, t.rowpos);
+                    throw interpreter.errorhandler.newError("Invalid Return Statement", text, t.line, t.rowpos);
                 }
                 return e.value;
             } else throw e;
@@ -59,7 +73,7 @@ export class Function implements Callable {
         if (!checkType(this.returntypes, null)) {
             let t = this.declaration.name;
             let text = `Expected return type ${this.returntypes.join(" | ")} but didn't recieve any for function '${t.value}' on line ${t.line}`;
-            throw errorhandler.newError("Invalid Return Statement", text, t.line, t.rowpos);
+            throw interpreter.errorhandler.newError("Invalid Return Statement", text, t.line, t.rowpos);
         }
 
         return null;

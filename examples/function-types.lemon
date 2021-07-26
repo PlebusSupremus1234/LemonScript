@@ -1,0 +1,7 @@
+func addNums(num1: Number, num2: Number): Number {
+    return num1 + num2
+}
+
+# should error because 2nd arg isn't a number
+# and the 2nd arg is required to be a number in the function
+print(addNums(1, "two"))

@@ -9,6 +9,13 @@ export function capitilizeFirstLetter(txt: string) { return txt.charAt(0).toUppe
 import { LSTypes } from "./constants";
 import { TokenValue } from "./structures/token"
 
+export function isTruthy(value: TokenValue): boolean {
+    if (value === 0) return true;
+    
+    if (value) return true;
+    else return false;
+}
+
 export function getType(type: TokenValue): string {
     if (type === null || type === "null") return "null";
     else return typeof type;

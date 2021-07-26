@@ -11,7 +11,7 @@ var b = 2
 print(a * 2 + b) # 4
 
 # Functions
-func isPrime(num) {
+func isPrime(num: Number): Boolean {
     for (var i = 2; i < num; i = i + 1) {
         if (num % i == 0) return false
     }
@@ -20,6 +20,7 @@ func isPrime(num) {
 
 print(isPrime(17)) # true
 ```
+More examples convering the functionality of LemonScript can be found [here](https://github.com/PlebusSupremus1234/LemonScript/tree/master/examples).
 
 A full list on all the functionality of LemonScript and how to use it can be found [here](https://github.com/PlebusSupremus1234/LemonScript/blob/master/documentation.md).
 
@@ -36,6 +37,7 @@ To start LemonScript, run `ts-node index.ts` in the directory. Then, you can eit
 ## Change Log
 Starting from 12/7 because I forgot to do it before
 ```
+26/7: Added typeof func and types for function args
 25/7: Added multiple types for variables and function returns + documentation for it
 24/7: Added singular static typing for variables
 23/7: New error system, overriding for methods and print fixing
