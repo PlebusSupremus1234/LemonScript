@@ -1,10 +1,9 @@
-import { Token } from "../structures/token"
 import { FuncArgs } from "../functions/function"
 import { TokenType, LSTypes } from "../constants"
+import { Token, TokenValue } from "../structures/token"
 import { ErrorHandler } from "../structures/errorhandler"
 
-import { Print, Typeof } from "../visitors/funcs"
-import { Stmt, Block, Class, Expression, Func, If, Return, Var, While } from "../visitors/stmt"
+import { Stmt, Block, Class, Expression, Func, If, Import, Return, Var, While } from "../visitors/stmt"
 import { Expr, Assign, Binary, Call, Get, Grouping, Literal, Logical, Self, Set, Super, Unary, Variable } from "../visitors/expr"
 
 export class Parser {
@@ -39,12 +38,11 @@ export class Parser {
 
     statement() {
         if (this.match("IF")) return this.ifStatement();
-        if (this.match("PRINT")) return this.printStatement();
-        if (this.match("TYPEOF")) return this.typeofStatement();
-        if (this.match("RETURN")) return this.returnStatement();
-        if (this.match("WHILE")) return this.whileStatement();
-        if (this.match("FOR")) return this.forStatement();
-        if (this.match("LBRACE")) return new Block(this.block(this.tokens[this.pos - 1]));
+        else if (this.match("IMPORT")) return this.importStatement();
+        else if (this.match("RETURN")) return this.returnStatement();
+        else if (this.match("WHILE")) return this.whileStatement();
+        else if (this.match("FOR")) return this.forStatement();
+        else if (this.match("LBRACE")) return new Block(this.block(this.tokens[this.pos - 1]));
 
         return this.expressionStatement();
     }
@@ -139,6 +137,7 @@ export class Parser {
 
         let parameters: FuncArgs[] = [];
         if (!this.check("RPAREN")) {
+            let hasOptional = false;
             do {
                 curr = this.tokens[this.pos - 1];
                 if (parameters.length >= 255) {
@@ -147,15 +146,25 @@ export class Parser {
                 }
 
                 let append: Token;
+                let optional = false;
                 let types: LSTypes[] = ["Any"];
 
                 if (!this.check("IDENTIFIER")) throw this.genFunctionErr(`Expected a parameter name`, curr.line, curr.rowpos + 1);
                 else append = this.advance();
 
+                if (this.match("EROTEME")) {
+                    optional = true;
+                    hasOptional = true;
+                } else if (hasOptional) {
+                    let token = this.tokens[this.pos - 1];
+                    let text = `A required parameter cannot follow an optional parameter on line ${token.line}`;
+                    throw this.errorhandler.newError("Invalid Function Declaration", text, token.line, token.rowpos);
+                }
+
                 if (this.match("COLON")) types = this.getTypes();
 
                 if (types.length === 0) types = ["Any"];
-                parameters.push({ name: append, types });
+                parameters.push({ name: append, optional, types });
             } while (this.match("COMMA"));
         }
 
@@ -358,10 +367,16 @@ export class Parser {
     }
 
     primary(): Expr {
-        if (this.match("TRUE")) return new Literal("TRUE", true);        
-        if (this.match("FALSE")) return new Literal("FALSE", false);
-        if (this.match("NUMBER", "STRING")) return new Literal("NUMBER", this.tokens[this.pos - 1].value);
-        if (this.match("NULL")) return new Literal("NULL", null);
+        if (this.match("NUMBER", "STRING", "BOOLEAN", "NULL")) {
+            let token = this.tokens[this.pos - 1];
+            let value: TokenValue;
+
+            if (token.type === "NUMBER" || token.type === "STRING") value = token.value;
+            else if (token.type === "BOOLEAN") value = token.value === "true";
+            else value = null;
+
+            return new Literal(token.type, value);
+        }
 
         if (this.match("SUPER")) {
             let keyword = this.tokens[this.pos - 1];
@@ -378,8 +393,6 @@ export class Parser {
 
         if (this.match("SELF")) return new Self(this.tokens[this.pos - 1]);
         if (this.match("IDENTIFIER")) return new Variable(this.tokens[this.pos - 1]);
-
-        if (this.match("TYPEOF")) return this.typeofStatement();
 
         let lparenpos = this.pos;
         if (this.match("LPAREN")) {
@@ -449,11 +462,22 @@ export class Parser {
         return new If(condition, thenBranch, elseBranch);
     }
 
-    printStatement(): Print {
-        if (!this.check("LPAREN")) this.genSyntaxErr(this.tokens[this.pos - 1], `Expected a '(' after 'print' func`, 5);
-        let value = this.expression();
+    importStatement(): Import {
+        let token = this.tokens[this.pos];
+        let text = `Expected a valid import name on line ${token.line}`;
+        if (!this.check("IDENTIFIER")) throw this.errorhandler.newError("Syntax Error", text, token.line, token.rowpos);
 
-        return new Print(value);
+        let name = this.advance();
+        let variablename: null | Token = null;
+
+        if (this.match("AS")) {
+            token = this.tokens[this.pos];
+            text = `Expected a valid variable name on line ${token.line}`;
+            if (!this.check("IDENTIFIER")) throw this.errorhandler.newError("Syntax Error", text, token.line, token.rowpos);
+            variablename = this.advance();
+        }
+
+        return new Import(name, variablename ? variablename : name);
     }
 
     returnStatement(): Return {
@@ -462,13 +486,6 @@ export class Parser {
         if (this.tokens[this.pos].line === keyword.line) value = this.expression();
 
         return new Return(keyword, value);
-    }
-
-    typeofStatement(): Typeof {
-        if (!this.check("LPAREN")) this.genSyntaxErr(this.tokens[this.pos - 1], `Expected a '(' after 'typeof' func`, 6);
-        let value = this.expression();
-
-        return new Typeof(value);
     }
 
     whileStatement(): While {

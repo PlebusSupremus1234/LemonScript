@@ -1,4 +1,3 @@
-import { FuncStmts } from "./funcs"
 import { LSTypes } from "../constants"
 import { Expr, Variable } from "./expr"
 import { Token } from "../structures/token"
@@ -10,13 +9,13 @@ export interface Visitor<T> {
     visitExpressionStmt: (stmt: Expression) => T;
     visitFuncStmt: (stmt: Func) => T;
     visitIfStmt: (stmt: If) => T;
+    visitImportStmt: (stmt: Import) => T;
     visitReturnStmt: (stmt: Return) => T;
     visitVarStmt: (stmt: Var) => T;
     visitWhileStmt: (stmt: While) => T;
 }
 
-type Stmts = Block | Class | Expression | Func | If | Return | Var | While;
-export type Stmt = Stmts | FuncStmts;
+export type Stmt = Block | Class | Expression | Func | If | Import | Return | Var | While;
 
 export class Block {
     statements: Stmt[];
@@ -78,6 +77,18 @@ export class If {
     }
 
     accept<T>(visitor: Visitor<T>): T { return visitor.visitIfStmt(this); }
+}
+
+export class Import {
+    module: Token;
+    name: Token;
+
+    constructor(module: Token, name: Token) {
+        this.module = module;
+        this.name = name;
+    }
+
+    accept<T>(visitor: Visitor<T>): T { return visitor.visitImportStmt(this); }
 }
 
 export class Return {

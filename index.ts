@@ -1,11 +1,12 @@
+import { run } from "./scripts/run"
 import * as readline from "readline"
 import { readFileSync, existsSync } from "fs"
-import { run } from "./scripts/run"
 import { red, yellow, cyan } from "./scripts/helper"
-const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
 
 console.log(yellow("LemonScript"));
 console.log(yellow("-----------"));
+
+const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
 
 function input() {
     rl.question(cyan("-> "), text => {

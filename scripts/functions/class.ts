@@ -17,13 +17,13 @@ export class LSClass implements Callable {
 
     stringify() { return `<class ${this.name}>`; }
 
-    arity() {
+    arity(): [number, number] {
         let init = this.findMethod("init");
-        return init === null ? 0 : init.arity();
+        return init === null ? [0, 0] : init.arity();
     }
 
     call(interpreter: Interpreter, token: Token, args: TokenValue[]) {
-        let instance = new Instance(this, interpreter.errorhandler);
+        let instance = new Instance(this);
         let initializer = this.findMethod("init");
         if (initializer !== null) initializer.bind(token, instance, interpreter.errorhandler).call(interpreter, token, args);
         return instance;

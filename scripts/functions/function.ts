@@ -12,6 +12,7 @@ import { getType, checkType, capitilizeFirstLetter } from "../helper"
 export type FuncArgs = {
     name: Token;
     types: LSTypes[];
+    optional: boolean;
 };
 
 export class Function implements Callable {
@@ -33,19 +34,23 @@ export class Function implements Callable {
         return new Function(this.declaration, environment, this.isInit, this.returntypes);
     }
 
-    arity() { return this.declaration.params.length; }
+    arity(): [number, number] {
+        let optional = this.declaration.params.filter(i => i.optional).length;
+        return [this.declaration.params.length - optional, this.declaration.params.length];
+    }
 
     call(interpreter: Interpreter, token: Token, args: any[]) {
         let environment = new Environment(this.closure, interpreter.errorhandler);
+
         for (let i = 0; i < this.declaration.params.length; i++) {
             let param = this.declaration.params[i];
-            if (!checkType(this.declaration.params[i].types, args[i].value)) {
+            if (args[i] && !checkType(this.declaration.params[i].types, args[i].value)) {
                 let expected = param.types.join(" | ");
                 let name = param.name.stringify();
                 let text = `Expected type ${expected} for argument '${name}' but recieved type ${capitilizeFirstLetter(getType(args[i].value))} on line ${args[i].token.line}`;
                 throw interpreter.errorhandler.newError("Invalid Function Call", text, args[i].token.line, args[i].token.rowpos);
             }
-            environment.define(param.name, false, args[i].value, "VAR", ["Any"]);
+            environment.define(param.name, false, args[i] ? args[i].value : null, "VAR", ["Any"]);
         }
 
         try { interpreter.executeBlock(this.declaration.body, environment); }

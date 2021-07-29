@@ -1,3 +1,5 @@
+import { Funcs, FuncObj } from "../structures/funcs"
+import { Modules } from "../structures/modules"
 import { Environment } from "../structures/environment"
 import { Token, TokenValue } from "../structures/token"
 import { ErrorHandler } from "../structures/errorhandler"
@@ -9,11 +11,10 @@ import { Function } from "../functions/function"
 import { Instance } from "../functions/instance"
 import { ReturnException } from "../functions/return-exception"
 
-import { Visitor as FuncVisitor, Print, Typeof } from "../visitors/funcs"
-import { Visitor as StmtVisitor, Stmt, Block, Class, Expression, Func, If, Return, Var, While } from "../visitors/stmt"
+import { Visitor as StmtVisitor, Stmt, Block, Class, Expression, Func, If, Import, Return, Var, While } from "../visitors/stmt"
 import { Visitor as ExprVisitor, Expr, Assign, Binary, Call, Get, Grouping, Literal, Logical, Self, Set, Super, Unary, Variable } from "../visitors/expr"
 
-export class Interpreter implements ExprVisitor<TokenValue>, FuncVisitor, StmtVisitor<void> {
+export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
     tokens: Token[];
     globals: Environment;
     environment: Environment;
@@ -25,12 +26,14 @@ export class Interpreter implements ExprVisitor<TokenValue>, FuncVisitor, StmtVi
         this.errorhandler = errorhandler;
         this.globals = new Environment(null, errorhandler);
         this.environment = this.globals;
+
+        for (let i of Funcs) this.globals.define(new Token("NATIVEFUNC", i.name, 0, 0), true, i.func, "FUNCTION", ["Any"]);
     }
 
     interpret(statements: Stmt[]) {
         for (let statement of statements) {
             try { this.execute(statement); }
-            catch(e) { console.log(e);return console.log(this.errorhandler.stringify()); }
+            catch(e) { return console.log(this.errorhandler.stringify()); }
         }
     }
 
@@ -92,7 +95,7 @@ export class Interpreter implements ExprVisitor<TokenValue>, FuncVisitor, StmtVi
                     if (r === 0) {
                         let text = `Cannot divide a number by 0 on line ${o.line}`;                        
                         let token = this.tokens[this.tokens.findIndex(i => i.line === o.line && i.rowpos === o.rowpos) + 1];
-                        throw this.errorhandler.newError("Zero Division Error", text, token.line, token.rowpos);
+                        throw this.errorhandler.newError("Math Error", text, token.line, token.rowpos);
                     }
                     return l / r;
                 }
@@ -101,7 +104,14 @@ export class Interpreter implements ExprVisitor<TokenValue>, FuncVisitor, StmtVi
                 if (typeof l === "number" && typeof r === "number") return l % r;
                 this.binaryErr("modulate", "from", l, r, o, l);
             case "CARET":
-                if (typeof l === "number" && typeof r === "number") return l ** r;
+                if (typeof l === "number" && typeof r === "number") {
+                    if (l < 0 && r < 1) {
+                        let text = `Cannot take root of a negative number on line ${o.line}`;
+                        let token = this.tokens[this.tokens.findIndex(i => i.line === o.line && i.rowpos === o.rowpos) + 1];
+                        throw this.errorhandler.newError("Math Error", text, token.line, token.rowpos);
+                    }
+                    return l ** r;
+                }
                 this.binaryErr("exponentialize", "from", l, r, o, l);
             case "GREATER":
                 if (typeof l === "number" && typeof r === "number") return l > r;
@@ -146,15 +156,27 @@ export class Interpreter implements ExprVisitor<TokenValue>, FuncVisitor, StmtVi
 
         let fn = callee;
         current = this.tokens[index];
-        if (args.length !== fn.arity()) throw this.functionErr(`Expected ${fn.arity()} arguments but got ${args.length}`, "Call", current.line, current.rowpos);
+        
+        let arity = fn.arity();
+        let expected = arity[0] === arity[1] ? arity[0] : `${arity[0]}-${arity[1]}`;
+        let text = `Expected ${expected} arguments but got ${args.length}`;
+        if (args.length < arity[0] || args.length > arity[1]) throw this.functionErr(text, "Call", current.line, current.rowpos);
 
         return fn.call(this, current, args);
     }
 
     visitGetExpr(expr: Get) {
         let obj = this.evaluate(expr.obj);
+        if (obj instanceof Instance) return obj.get(expr.name, this.errorhandler);
 
-        if (obj instanceof Instance) return obj.get(expr.name);
+        let name = (expr.obj as any).name.stringify();
+        let module = Modules[name];
+        if (module) {
+            if (module.methods.map(i => i.name).includes(expr.name.stringify())) return obj;
+            
+            let text = `Method '${expr.name.stringify()}' does not exist in module '${name}' on line ${expr.name.line}`;
+            throw this.errorhandler.newError("Module Error", text, expr.name.line, expr.name.rowpos);
+        }
 
         let text = `Only instances have properties on line ${expr.name.line}`;
         throw this.errorhandler.newError("Type Error", text, expr.name.line, expr.name.rowpos);
@@ -230,19 +252,6 @@ export class Interpreter implements ExprVisitor<TokenValue>, FuncVisitor, StmtVi
 
     visitVariableExpr(expr: Variable) { return this.lookupVariable(expr.name, expr); }
 
-    // Visit Built in Functions
-    visitPrintFunc(stmt: Print) {
-        let value = this.evaluate(stmt.expression);
-        if (value instanceof Function || value instanceof LSClass || value instanceof Instance) value = value.stringify();
-
-        console.log(value);
-    }
-
-    visitTypeofFunc(expr: Typeof) {
-        let value = this.evaluate(expr.expression);
-        return capitilizeFirstLetter(getType(value));
-    }
-
     // Visit Statements
     visitBlockStmt(stmt: Block) {
         this.executeBlock(stmt.statements, new Environment(this.environment, this.errorhandler));
@@ -297,6 +306,23 @@ export class Interpreter implements ExprVisitor<TokenValue>, FuncVisitor, StmtVi
         return null;
     }
 
+    visitImportStmt(stmt: Import) {
+        if (!Modules[stmt.module.stringify()]) {
+            let text = `Module '${stmt.module.stringify()}' does not exist on line ${stmt.module.line}`;
+            throw this.errorhandler.newError("Import Error", text, stmt.module.line, stmt.module.rowpos);
+        }
+
+        let key = this.environment.get(new Token("IDENTIFIER", stmt.module.stringify(), 0, 0), false);
+        if (key) {
+            let text = `Variable with the name '${stmt.module.stringify()}' already exists when importing module on line ${stmt.module.line}`;
+            this.errorhandler.newError("Import Error", text, stmt.module.line, stmt.module.rowpos);
+            throw this.errorhandler.newHelp("You can add an 'as' keyword followed by an identifier to rename the module");
+        }
+
+        let module: FuncObj = Modules[stmt.module.stringify()].methods[0].func;
+        this.environment.define(stmt.name, true, module, "MODULE", ["Any"]);
+    }
+
     visitReturnStmt(stmt: Return) {
         let value: TokenValue = null;
         if (stmt.value !== null) value = this.evaluate(stmt.value); 
@@ -334,7 +360,7 @@ export class Interpreter implements ExprVisitor<TokenValue>, FuncVisitor, StmtVi
 
     lookupVariable(name: Token, expr: Expr) {
         let distance = this.locals.get(expr);
-        if (distance !== undefined) return this.environment.getAt(distance, "", name);
-        else return this.globals.get(name);
+        let key = distance !== undefined ? this.environment.getAt(distance, "", name) : this.globals.get(name);
+        return key ? key : null;
     }
 }

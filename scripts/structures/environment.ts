@@ -3,7 +3,7 @@ import { Token, TokenValue } from "./token"
 import { capitilizeFirstLetter, checkType } from "../helper"
 import { ErrorHandler } from "../structures/errorhandler"
 
-type KeyType = "VAR" | "FUNCTION" | "CLASS"
+type KeyType = "VAR" | "FUNCTION" | "CLASS" | "MODULE";
 type VarKey = {
     constant: boolean;
     type: KeyType;
@@ -39,11 +39,11 @@ export class Environment {
         return environment;
     }
 
-    get(name: Token): TokenValue {
+    get(name: Token, error: boolean = true): void | TokenValue {
         let key = this.values.has(name.stringify()) ? this.values.get(name.stringify()) : undefined;
         if (key && key.value !== undefined) return key.value;
         else if (this.enclosing) return this.enclosing.get(name);
-        else {
+        else if (error) {
             let text = `Undefined variable '${name.stringify()}' detected on line ${name.line}`;
             throw this.errorhandler.newError("Variable Error", text, name.line, name.rowpos);
         }

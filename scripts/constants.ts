@@ -1,11 +1,9 @@
-import { Funcs } from "./visitors/funcs"
-
 const symbols = [
     "PLUS", "MINUS", "MUL", "DIV", "MOD", "CARET",
-    "LPAREN", "RPAREN", "LBRACE", "RBRACE", "LBRACKET", "RBRACKET", "COLON", "SEMICOLON", "DOT", "COMMA", "PIPE",
+    "LPAREN", "RPAREN", "LBRACE", "RBRACE", "LBRACKET", "RBRACKET", "COLON", "SEMICOLON", "DOT", "COMMA", "PIPE", "EROTEME",
     "BANG", "BANGEQUAL", "EQUAL", "EQUALEQUAL", "LESS", "LESSEQUAL", "GREATER", "GREATEREQUAL",
 ];
-const types = ["NUMBER", "STRING"];
+const types = ["NUMBER", "STRING", "BOOLEAN", "NULL"];
 const other = ["INDENTIFIER", "TYPE", "EOF"];
 const keywords = [
     "AND", "OR",
@@ -13,8 +11,7 @@ const keywords = [
     "OVERRIDE", "RETURN", "SELF", "SUPER",
     "CONST", "VAR",
     "IF", "ELSE", "FOR", "WHILE",
-    "TRUE", "FALSE", "NULL",
-    ...Funcs
+    "IMPORT", "AS"
 ];
 
 const tokentypes = [...symbols, ...types, ...other, ...keywords] as const

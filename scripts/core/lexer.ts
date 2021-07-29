@@ -84,6 +84,7 @@ export class Lexer {
             case ".": this.addToken("DOT"); break;
             case ",": this.addToken("COMMA"); break;
             case "|": this.addToken("PIPE"); break;
+            case "?": this.addToken("EROTEME"); break;
             case "!":
                 if (this.next("=")) this.addToken("BANGEQUAL", "!=", this.rowpos - 1);
                 else this.addToken("BANG", "!", this.rowpos);
@@ -122,7 +123,10 @@ export class Lexer {
                     let rowstart = this.rowpos;
                     while (this.isAlpha(this.peek()) || "0123456789".includes(this.peek())) this.advance();
                     let text = this.ftext.substring(start, this.pos + 1);
+
                     if (LSTypesArray.includes(text)) this.addToken("TYPE", text, rowstart);
+                    else if (["true", "false"].includes(text)) this.addToken("BOOLEAN", text, rowstart);
+                    else if (text === "null") this.addToken("NULL", text, rowstart);
                     else if (Keywords.map(i => i.toLowerCase()).includes(text)) this.addToken(text.toUpperCase(), text, rowstart);
                     else this.addToken("IDENTIFIER", text, rowstart);
                 } else if ("0123456789".includes(this.currentChar)) { // Number

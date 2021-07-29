@@ -6,11 +6,10 @@ type ClassType = "NONE" | "CLASS" | "SUBCLASS";
 type visitable = { accept: (visitor: any) => any; };
 type FunctionType = "NONE" | "FUNCTION" | "METHOD" | "INITIALIZER";
 
-import { Visitor as FuncVisitor, Print, Typeof } from "../visitors/funcs"
-import { Visitor as StmtVisitor, Stmt, Block, Class, Expression, Func, If, Return, Var, While } from "../visitors/stmt"
+import { Visitor as StmtVisitor, Stmt, Block, Class, Expression, Func, If, Import, Return, Var, While } from "../visitors/stmt"
 import { Visitor as ExprVisitor, Expr, Assign, Binary, Call, Get, Grouping, Literal, Logical, Self, Set, Super, Unary, Variable } from "../visitors/expr"
 
-export class Resolver implements ExprVisitor<void>, FuncVisitor, StmtVisitor<void> {
+export class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
     interpreter: Interpreter;
     errorhandler: ErrorHandler;
     currentClass: ClassType = "NONE";
@@ -130,14 +129,6 @@ export class Resolver implements ExprVisitor<void>, FuncVisitor, StmtVisitor<voi
         this.resolveLocal(expr, expr.name);
     }
 
-    // Visit Built in Functions
-    visitPrintFunc(stmt: Print) { this.resolve(stmt.expression); }
-
-    visitTypeofFunc(stmt: Typeof) {
-        this.resolve(stmt.expression);
-        return null;
-    }
-
     // Visit Statements
     visitBlockStmt(stmt: Block) {
         this.beginScope();
@@ -194,6 +185,8 @@ export class Resolver implements ExprVisitor<void>, FuncVisitor, StmtVisitor<voi
         this.resolve(stmt.thenBranch);
         if (stmt.elseBranch !== null) this.resolve(stmt.elseBranch);
     }
+
+    visitImportStmt(stmt: Import) {}
 
     visitReturnStmt(stmt: Return) {
         let t = stmt.keyword;

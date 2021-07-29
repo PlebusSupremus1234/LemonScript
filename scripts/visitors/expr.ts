@@ -1,4 +1,3 @@
-import { FuncExprs } from "./funcs"
 import { TokenType } from "../constants"
 import { Token, TokenValue } from "../structures/token";
 
@@ -17,8 +16,7 @@ export interface Visitor<T> {
     visitVariableExpr: (expr: Variable) => T;
 }
 
-type Exprs = Assign | Binary | Call | Get | Grouping | Literal | Logical | Self | Set | Super | Unary | Variable;
-export type Expr = Exprs | FuncExprs;
+export type Expr = Assign | Binary | Call | Get | Grouping | Literal | Logical | Self | Set | Super | Unary | Variable;
 
 export class Assign {
     name: Token;

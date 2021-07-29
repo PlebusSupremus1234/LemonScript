@@ -126,7 +126,7 @@ if ([condition]) {
     [code]
 }
 ```
-The code will execute if the condition is [truthy](https://github.com/PlebusSupremus1234/LemonScript/blob/master/documentation.md#truthy). You can also couple an else statement at the end like:
+The code will execute if the condition is [truthy](https://github.com/PlebusSupremus1234/LemonScript/blob/master/documentation.md#truthiness). You can also couple an else statement at the end like:
 ```js
 if ([condition]) {
     [code]
@@ -134,7 +134,7 @@ if ([condition]) {
     [code]
 }
 ```
-The code in the else statement will execute if the condition isnt [truthy](https://github.com/PlebusSupremus1234/LemonScript/blob/master/documentation.md#truthy).
+The code in the else statement will execute if the condition isnt [truthy](https://github.com/PlebusSupremus1234/LemonScript/blob/master/documentation.md#truthiness).
 
 ## While Loop
 To write a while loop, you can use the `while` keyword with this syntax:
@@ -143,7 +143,7 @@ while ([condition]) {
     [code]
 }
 ```
-As the name implies, while the condition is [truthy](https://github.com/PlebusSupremus1234/LemonScript/blob/master/documentation.md#truthy), the code will execute. Be careful with this, as sometimes this can cause an infinite loop. 
+As the name implies, while the condition is [truthy](https://github.com/PlebusSupremus1234/LemonScript/blob/master/documentation.md#truthiness), the code will execute. Be careful with this, as sometimes this can cause an infinite loop. 
 
 ## For Loop
 A for loop is a refactored while loop with a different syntax:
@@ -268,5 +268,5 @@ For safety reasons, if you try to override an existing superclass method in the 
 override [method name]([args]) {}
 ```
 
-### Truthiness
+## Truthiness
 In LemonScript, everything (strings, numbers etc) is truthy except the values `false` and `null`. 
