@@ -20,7 +20,7 @@ func isPrime(num: Number): Boolean {
 
 print(isPrime(17)) # true
 ```
-More examples covering the functionality of LemonScript can be found [here](https://github.com/PlebusSupremus1234/LemonScript/tree/master/examples).
+Many more examples covering the functionality of LemonScript can be found [here](https://github.com/PlebusSupremus1234/LemonScript/tree/master/examples).
 
 A full list on all the functionality of LemonScript and how to use it can be found [here](https://github.com/PlebusSupremus1234/LemonScript/blob/master/documentation.md).
 
@@ -37,6 +37,9 @@ To start LemonScript, run `ts-node index.ts` in the directory. Then, you can eit
 ## Change Log
 Starting from 12/7 because I forgot to do it before
 ```
+1/8: Documentation
+31/7: Random module
+30/7: Rewrite modules
 29/7: Basic modules
 27/7: Added optional argument support for funcs
 26/7: Added typeof func and types for function args

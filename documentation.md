@@ -11,6 +11,7 @@
 - [For Loop](https://github.com/PlebusSupremus1234/LemonScript/blob/master/documentation.md#for-loop)
 - [Functions](https://github.com/PlebusSupremus1234/LemonScript/blob/master/documentation.md#functions)
 - [Classes](https://github.com/PlebusSupremus1234/LemonScript/blob/master/documentation.md#classes)
+- [Modules](https://github.com/PlebusSupremus1234/LemonScript/blob/master/documentation.md#modules)
 
 ## Binary Operators
 In LemonScript, there are a variety of operations such as `+`, `-`, `*` and `/`. Here is a list of all of them and what they do:
@@ -189,6 +190,12 @@ print(add(123, -11))
 ```
 This is a basic function that takes 2 inputs, then returns the sum. Returning a value stops the fuction, and returns the value in the statement. This means that proceeding code after the statement will not execute. If there is no expression or no return statement, the function automatically returns `null`. 
 
+You can also set optional arguments by adding a `?` after the argument name, like this:
+```js
+func test(arg1, arg2?) {}
+```
+If no arg2 argument is passed, the arg2 will be automatically assigned to `null`. 
+
 ## Classes
 A class is an `object` that has properties and methods (its own functions). Here is the syntax for creating a class:
 ```js
@@ -267,6 +274,24 @@ For safety reasons, if you try to override an existing superclass method in the 
 ```js
 override [method name]([args]) {}
 ```
+
+## Modules
+In LemonScript, a module is a class that you can import into a file. For example:
+```js
+import random # importing the random module
+print(random.randint(1, 10)) # random number between 1 and 10
+```
+The syntax for importing a module is:
+```js
+import [module name] as [variable name]
+```
+The `as [variable name]` is optional, but it defines the module with a different variable name. This is useful if the module name is already defined. Without it, the module is auto defined to the module's name. Now, you can treat the module as a class. Here is a list of all the modules than LemonScript currently as, along with all the methods. 
+
+### Random Module
+The random module has the following methods:
+- `randint(min, max)` - Returns a random integer between the two values (inclusive). 
+- `random([min, max])` - Returns a random decimal between the two values (inclusive). If no arguments are passed, then its between 0 and 1. 
+- `randomGaussian([mean], [standarddev])` - Returns a random number fitting a Gaussian, or normal, distribution. If a mean argument isn't passed, it sets the mean to 0. If a standard deviation argument isn't passed, it sets the standard deviation to 1. 
 
 ## Truthiness
 In LemonScript, everything (strings, numbers etc) is truthy except the values `false` and `null`. 

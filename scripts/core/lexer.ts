@@ -20,11 +20,8 @@ export class Lexer {
     }
 
     lex(): void | Token[] {
-        if (this.currentChar === "\n") {
-            this.pos--;
-            this.rowpos--;
-            this.advance();
-        }
+        if (this.currentChar === "\n") this.advance();
+
         while (!this.isAtEnd()) {
             try { this.genToken(); }
             catch(e) { return console.log(this.errorhandler.stringify()); }
@@ -105,6 +102,11 @@ export class Lexer {
                 while (this.peek() !== "\n" && !this.isAtEnd()) this.advance();
                 this.advance();
                 break;
+            case " ":
+            case "\t":
+            case "\r":
+                this.advance();
+                break;
             case '"': // String
             case "'":
                 let ending = this.currentChar;
@@ -117,8 +119,7 @@ export class Lexer {
                 this.addToken("STRING", this.ftext.substring(start, this.pos), rowstart, linestart);
                 break;
             default: // Other
-                if (" \t".includes(this.currentChar)) this.advance();
-                else if (this.isAlpha(this.currentChar) || this.currentChar === "_") { // Identifier / Keyword
+                if (this.isAlpha(this.currentChar) || this.currentChar === "_") { // Identifier / Keyword
                     let start = this.pos;
                     let rowstart = this.rowpos;
                     while (this.isAlpha(this.peek()) || "0123456789".includes(this.peek())) this.advance();

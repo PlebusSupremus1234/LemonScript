@@ -8,7 +8,6 @@ export class Instance {
 
     constructor(_class: LSClass) {
         this._class = _class;
-        console.log(_class)
     }
 
     stringify() { return `<instance ${this._class.name}>`; }

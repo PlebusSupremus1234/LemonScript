@@ -7,7 +7,7 @@ import { Interpreter } from "../core/interpreter"
 import { ReturnException } from "./return-exception"
 import { Environment } from "../structures/environment"
 import { ErrorHandler } from "../structures/errorhandler"
-import { getType, checkType, capitilizeFirstLetter } from "../helper"
+import { getType, checkType, capitilizeFirstLetter, checkArgType } from "../helper"
 
 export type FuncArgs = {
     name: Token;
@@ -44,12 +44,8 @@ export class Function implements Callable {
 
         for (let i = 0; i < this.declaration.params.length; i++) {
             let param = this.declaration.params[i];
-            if (args[i] && !checkType(this.declaration.params[i].types, args[i].value)) {
-                let expected = param.types.join(" | ");
-                let name = param.name.stringify();
-                let text = `Expected type ${expected} for argument '${name}' but recieved type ${capitilizeFirstLetter(getType(args[i].value))} on line ${args[i].token.line}`;
-                throw interpreter.errorhandler.newError("Invalid Function Call", text, args[i].token.line, args[i].token.rowpos);
-            }
+            checkArgType(param.name.stringify(), param.types, args[i], interpreter.errorhandler);
+            
             environment.define(param.name, false, args[i] ? args[i].value : null, "VAR", ["Any"]);
         }
 

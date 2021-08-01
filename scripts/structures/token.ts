@@ -1,8 +1,9 @@
 import { TokenType } from "../constants"
+import { Module } from "../modules/module"
 import { Callable } from "../functions/callable"
 import { Instance } from "../functions/instance"
 
-export type TokenValue = null | boolean | number | string | Callable | Instance;
+export type TokenValue = null | boolean | number | string | Callable | Instance | Module;
 export class Token {
     type: TokenType;
     value: TokenValue;

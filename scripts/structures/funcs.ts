@@ -1,3 +1,4 @@
+import { LSTypes } from "../constants"
 import { LSClass } from "../functions/class"
 import { Function } from "../functions/function"
 import { Instance } from "../functions/instance"

@@ -1,9 +1,12 @@
-import { Funcs, FuncObj } from "../structures/funcs"
-import { Modules } from "../structures/modules"
+import { Funcs } from "../structures/funcs"
 import { Environment } from "../structures/environment"
 import { Token, TokenValue } from "../structures/token"
 import { ErrorHandler } from "../structures/errorhandler"
-import { capitilizeFirstLetter, isTruthy, getType, checkType } from "../helper"
+import { capitilizeFirstLetter, isTruthy, getType, checkType, checkArgType } from "../helper"
+
+import { Module } from "../modules/module"
+import { Modules } from "../modules/modules"
+import { ModuleMethod } from "../modules/types"
 
 import { LSClass } from "../functions/class"
 import { Callable } from "../functions/callable"
@@ -43,7 +46,7 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
     evaluate(expr: Expr): TokenValue { return expr.accept<TokenValue>(this); }
     
     isCallable(callee: any): callee is Callable {
-        return callee.call && (typeof callee.call === "function") && callee.arity && (typeof callee.arity === "function");
+        return callee && callee.call && (typeof callee.call === "function") && callee.arity && (typeof callee.arity === "function");
     }
 
     functionErr(text: string, type: string, line: number, pos: number) {
@@ -150,17 +153,28 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
             idx++;
         }
 
-        let index = this.tokens.findIndex(i => i.line === expr.paren.line && i.rowpos === expr.paren.rowpos);
-        let current = this.tokens[index - 2];
+        let current = (expr.callee as any).name;
         if (!this.isCallable(callee)) throw this.functionErr("Can only call functions and classes", "Call", current.line, current.rowpos);
 
         let fn = callee;
-        current = this.tokens[index];
+        current = expr.paren;
         
         let arity = fn.arity();
         let expected = arity[0] === arity[1] ? arity[0] : `${arity[0]}-${arity[1]}`;
         let text = `Expected ${expected} arguments but got ${args.length}`;
         if (args.length < arity[0] || args.length > arity[1]) throw this.functionErr(text, "Call", current.line, current.rowpos);
+
+        let funcArgs = (fn as any).arguments;
+
+        if (!(fn instanceof Function) && funcArgs) {
+            for (let i = 0; i < args.length; i++) {
+                let arg = funcArgs[i];
+                let name = arg ? arg.name : `arg${i + 1}`;
+                let types = arg ? arg.types : ["Any"];
+
+                checkArgType(name, types, args[i], this.errorhandler);
+            }
+        }
 
         return fn.call(this, current, args);
     }
@@ -169,13 +183,17 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
         let obj = this.evaluate(expr.obj);
         if (obj instanceof Instance) return obj.get(expr.name, this.errorhandler);
 
-        let name = (expr.obj as any).name.stringify();
-        let module = Modules[name];
-        if (module) {
-            if (module.methods.map(i => i.name).includes(expr.name.stringify())) return obj;
+        if (obj instanceof Module) {
+            let result = obj.get(expr.name.stringify());
             
-            let text = `Method '${expr.name.stringify()}' does not exist in module '${name}' on line ${expr.name.line}`;
-            throw this.errorhandler.newError("Module Error", text, expr.name.line, expr.name.rowpos);
+            if (!result) {
+                let text = `Method '${expr.name.stringify()}' does not exist in module ${obj.name} on line ${expr.name.line}`;
+                this.errorhandler.newError("Module Error", text, expr.name.line, expr.name.rowpos);
+                text = `You can add an 'as' keyword followed by an identifier to rename the module`;
+                throw this.errorhandler.newHelp(text);
+            }
+ 
+            return result;
         }
 
         let text = `Only instances have properties on line ${expr.name.line}`;
@@ -313,14 +331,17 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
         }
 
         let key = this.environment.get(new Token("IDENTIFIER", stmt.module.stringify(), 0, 0), false);
-        if (key) {
+        if (key && stmt.name.stringify() === stmt.module.stringify()) {
             let text = `Variable with the name '${stmt.module.stringify()}' already exists when importing module on line ${stmt.module.line}`;
             this.errorhandler.newError("Import Error", text, stmt.module.line, stmt.module.rowpos);
             throw this.errorhandler.newHelp("You can add an 'as' keyword followed by an identifier to rename the module");
         }
 
-        let module: FuncObj = Modules[stmt.module.stringify()].methods[0].func;
-        this.environment.define(stmt.name, true, module, "MODULE", ["Any"]);
+        let module = Modules[stmt.module.stringify()];
+        let methods = new Map<string, ModuleMethod>();
+        for (let i of module.methods) methods.set(i.name, i);
+
+        this.environment.define(stmt.name, true, new Module(stmt.name.stringify(), methods), "MODULE", ["Any"]);
     }
 
     visitReturnStmt(stmt: Return) {
@@ -361,6 +382,8 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
     lookupVariable(name: Token, expr: Expr) {
         let distance = this.locals.get(expr);
         let key = distance !== undefined ? this.environment.getAt(distance, "", name) : this.globals.get(name);
-        return key ? key : null;
+        
+        if (key || key === 0) return key;
+        else return null;
     }
 }
