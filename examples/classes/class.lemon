@@ -1,4 +1,4 @@
-const pi = 3.1415926
+import math
 
 class Circle {
     init(x: Number, y: Number, radius: Number) {
@@ -7,9 +7,9 @@ class Circle {
         self.radius = radius
     }
 
-    area(): Number { return pi * self.radius ^ 2 }
+    area(): Number { return math.PI * self.radius ^ 2 }
     diameter(): Number { return 2 * self.radius }
-    circumference(): Number { return 2 * pi * self.radius }
+    circumference(): Number { return 2 * math.PI * self.radius }
 }
 
 const circle = Circle(50, 50, 20)

@@ -291,7 +291,7 @@ The `as [variable name]` is optional, but it defines the module with a different
 The random module has the following methods:
 - `randint(min, max)` - Returns a random integer between the two values (inclusive). 
 - `random([min, max])` - Returns a random decimal between the two values (inclusive). If no arguments are passed, then its between 0 and 1. 
-- `randomGaussian([mean], [standarddev])` - Returns a random number fitting a Gaussian, or normal, distribution. If a mean argument isn't passed, it sets the mean to 0. If a standard deviation argument isn't passed, it sets the standard deviation to 1. 
+- `randGauss([mean], [standarddev])` - Returns a random number fitting a Gaussian, or normal, distribution. If a mean argument isn't passed, it sets the mean to 0. If a standard deviation argument isn't passed, it sets the standard deviation to 1. 
 
 ## Truthiness
 In LemonScript, everything (strings, numbers etc) is truthy except the values `false` and `null`. 

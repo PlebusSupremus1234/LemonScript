@@ -444,7 +444,7 @@ export class Parser {
         let body: Stmt = this.statement();
         if (increment !== null) body = new Block([body, new Expression(increment)]);
 
-        if (condition === null) condition = new Literal("TRUE", true);
+        if (condition === null) condition = new Literal("BOOLEAN", true);
         body = new While(condition, body);
         if (initializer !== null) body = new Block([initializer, body]);
 

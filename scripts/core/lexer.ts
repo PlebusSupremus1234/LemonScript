@@ -45,7 +45,7 @@ export class Lexer {
         this.advance();
     }
 
-    next(expected: TokenType): boolean {
+    next(expected: string): boolean {
         let bool = this.peek() === expected;
         if (bool) this.advance();
         return bool;
@@ -128,7 +128,7 @@ export class Lexer {
                     if (LSTypesArray.includes(text)) this.addToken("TYPE", text, rowstart);
                     else if (["true", "false"].includes(text)) this.addToken("BOOLEAN", text, rowstart);
                     else if (text === "null") this.addToken("NULL", text, rowstart);
-                    else if (Keywords.map(i => i.toLowerCase()).includes(text)) this.addToken(text.toUpperCase(), text, rowstart);
+                    else if (Keywords.map(i => i.toLowerCase()).includes(text)) this.addToken(text.toUpperCase() as TokenType, text, rowstart);
                     else this.addToken("IDENTIFIER", text, rowstart);
                 } else if ("0123456789".includes(this.currentChar)) { // Number
                     let start = this.pos;

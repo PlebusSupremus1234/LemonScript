@@ -37,7 +37,9 @@ To start LemonScript, run `ts-node index.ts` in the directory. Then, you can eit
 ## Change Log
 Starting from 12/7 because I forgot to do it before
 ```
-1/8: Documentation
+05/8: Added properties to modules
+02/8: Math Module
+01/8: Documentation
 31/7: Random module
 30/7: Rewrite modules
 29/7: Basic modules

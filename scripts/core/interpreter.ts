@@ -1,3 +1,4 @@
+import { LSTypes } from "../constants"
 import { Funcs } from "../structures/funcs"
 import { Environment } from "../structures/environment"
 import { Token, TokenValue } from "../structures/token"
@@ -96,7 +97,7 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
             case "DIV":
                 if (typeof l === "number" && typeof r === "number") {
                     if (r === 0) {
-                        let text = `Cannot divide a number by 0 on line ${o.line}`;                        
+                        let text = `Cannot divide a number by 0 on line ${o.line}`;
                         let token = this.tokens[this.tokens.findIndex(i => i.line === o.line && i.rowpos === o.rowpos) + 1];
                         throw this.errorhandler.newError("Math Error", text, token.line, token.rowpos);
                     }
@@ -108,7 +109,7 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
                 this.binaryErr("modulate", "from", l, r, o, l);
             case "CARET":
                 if (typeof l === "number" && typeof r === "number") {
-                    if (l < 0 && r < 1) {
+                    if (l < 0 && r < 1 && r > 0) {
                         let text = `Cannot take root of a negative number on line ${o.line}`;
                         let token = this.tokens[this.tokens.findIndex(i => i.line === o.line && i.rowpos === o.rowpos) + 1];
                         throw this.errorhandler.newError("Math Error", text, token.line, token.rowpos);
@@ -167,10 +168,13 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
         let funcArgs = (fn as any).arguments;
 
         if (!(fn instanceof Function) && funcArgs) {
+            let defaultArgType: LSTypes[] = ["Any"]; // This is just for conserving the argument type in module methods
+
             for (let i = 0; i < args.length; i++) {
                 let arg = funcArgs[i];
                 let name = arg ? arg.name : `arg${i + 1}`;
-                let types = arg ? arg.types : ["Any"];
+                let types = arg ? arg.types : defaultArgType;
+                defaultArgType = types;
 
                 checkArgType(name, types, args[i], this.errorhandler);
             }
@@ -185,12 +189,10 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
 
         if (obj instanceof Module) {
             let result = obj.get(expr.name.stringify());
-            
+
             if (!result) {
-                let text = `Method '${expr.name.stringify()}' does not exist in module ${obj.name} on line ${expr.name.line}`;
-                this.errorhandler.newError("Module Error", text, expr.name.line, expr.name.rowpos);
-                text = `You can add an 'as' keyword followed by an identifier to rename the module`;
-                throw this.errorhandler.newHelp(text);
+                let text = `Property '${expr.name.stringify()}' does not exist in module ${obj.name} on line ${expr.name.line}`;
+                throw this.errorhandler.newError("Module Error", text, expr.name.line, expr.name.rowpos);
             }
  
             return result;
@@ -334,14 +336,18 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
         if (key && stmt.name.stringify() === stmt.module.stringify()) {
             let text = `Variable with the name '${stmt.module.stringify()}' already exists when importing module on line ${stmt.module.line}`;
             this.errorhandler.newError("Import Error", text, stmt.module.line, stmt.module.rowpos);
-            throw this.errorhandler.newHelp("You can add an 'as' keyword followed by an identifier to rename the module");
+            throw this.errorhandler.newHelp("You can add a 'as' keyword followed by an identifier to rename the module");
         }
 
         let module = Modules[stmt.module.stringify()];
-        let methods = new Map<string, ModuleMethod>();
+
+        let properties = new Map<string, TokenValue>();
+        for (let i of module.properties) properties.set(i.name, i.value);
+
+        let methods = new Map<string, ModuleMethod>();        
         for (let i of module.methods) methods.set(i.name, i);
 
-        this.environment.define(stmt.name, true, new Module(stmt.name.stringify(), methods), "MODULE", ["Any"]);
+        this.environment.define(stmt.name, true, new Module(stmt.name.stringify(), methods, properties), "MODULE", ["Any"]);
     }
 
     visitReturnStmt(stmt: Return) {

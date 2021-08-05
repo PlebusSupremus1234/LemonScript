@@ -1,0 +1,46 @@
+import math
+
+print("Constants/Properties")
+print(math.PI)
+print(math.E)
+print(math.PHI)
+print(math.SQRT2)
+
+# ---------------
+print("Methods")
+print(math.absolute(-5)) # 5
+print(math.round(12.4)) # 12
+print(math.floor(4.8)) # 4
+print(math.ceil(0.3)) # 1
+
+# ---------------
+print("Trigonometry Methods (Input values in radians)")
+print(math.sin(math.PI / 2)) # 1
+print(math.cos(math.PI / 3)) # 0.5
+print(math.tan(math.PI / 4)) # 1
+print(math.asin(1 / 2)) # pi / 6 or ~ 0.524
+print(math.acos(math.sqrt(2) / 2)) # pi / 4 or ~ 0.785
+print(math.atan(math.sqrt(3))) # pi / 3 or ~ 1.047
+
+# ---------------
+print("Converting Between Radians & Degrees")
+print(math.radtodeg(math.PI / 2)) # 90
+print(math.degtorad(45)) # pi / 4 or ~ 0.785
+
+# ---------------
+print("Logarithms")
+print(math.log(32, 2)) # Base 2
+print(math.log(8, 10)) # Base 10
+print(math.log(15.5)) # Natural Base (E)
+
+# ---------------
+print("Roots & Powers")
+print(math.sqrt(64)) # 8
+print(math.power(4, 2)) # 4 ^ 2 = 16
+print(math.root(27, 3)) # 3
+
+# ---------------
+print("Other")
+print(math.factorial(4)) # 4 * 3 * 2 * 1 = 24
+print(math.min(12, 5.5, 2.9, -5, 2)) # -5
+print(math.max(18, 46, 2.3, 19, 30.3)) # 46
