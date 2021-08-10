@@ -1,6 +1,7 @@
-import { ModuleMethod, ModuleMethodsMap, InputMethod, Argument } from "./types"
 import { Interpreter } from "../core/interpreter"
 import { Token, TokenValue } from "../structures/token"
+import { ErrorHandler } from "../structures/errorhandler"
+import { Method, ModuleMethodsMap, InputMethod, Argument } from "./types"
 
 export class Module {
     name: string;
@@ -13,14 +14,21 @@ export class Module {
         this.properties = properties;
     }
 
-    get(name: string) {
-        let result = this.properties.get(name);
+    get(name: Token, errorhandler: ErrorHandler) {
+        let result = this.properties.get(name.stringify());
         if (result) return result;
 
-        result = this.methods.get(name);
-        if (!result) return null;
-        else return result;
+        result = this.methods.get(name.stringify());
+        if (result) return result;
+
+        throw errorhandler.newError(
+            "Property Error",
+            `Property '${name.stringify()}' does not exist on module '${this.name}' on line ${name.line}`,
+            name.line, name.rowpos
+        );
     }
+
+    stringify() { return `<module ${this.name}>`; }
 }
 
 export function copyMathMethod(name: string, methodname: string, args: Argument[] = [{ name: "num", types: ["Number"] }]) {
@@ -31,7 +39,7 @@ export function copyMathMethod(name: string, methodname: string, args: Argument[
     });
 }
 
-export function createMethod(obj: InputMethod): ModuleMethod {
+export function createMethod(obj: InputMethod): Method {
     return {
         name: obj.name,
         arguments: obj.arguments = [{ name: "num", types: ["Number"] }],

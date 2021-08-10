@@ -8,12 +8,12 @@ export type Argument = {
     types: LSTypes[];
 };
 
-export type ModuleMethod = {
+export type Method = {
     name: string;
     arguments: Argument[];
 } & Callable;
 
-export type ModuleMethodsMap = Map<string, ModuleMethod>;
+export type ModuleMethodsMap = Map<string, Method>;
 
 type PropetyType = {
     name: string;
@@ -23,7 +23,7 @@ type PropetyType = {
 export type ModuleType = {
     name: string;
     properties: PropetyType[];
-    methods: ModuleMethod[];
+    methods: Method[];
 };
 
 export type ModuleObj = { [name: string]: ModuleType; }

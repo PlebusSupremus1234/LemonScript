@@ -1,5 +1,5 @@
 import { TokenType } from "../constants"
-import { Token, TokenValue } from "../structures/token";
+import { Token, TokenValue } from "../structures/token"
 
 export interface Visitor<T> {
     visitAssignExpr: (expr: Assign) => T;

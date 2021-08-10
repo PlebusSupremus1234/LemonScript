@@ -1,6 +1,6 @@
 import { LSTypes } from "./constants"
+import { Callable } from "./functions/callable"
 import { TokenValue } from "./structures/token"
-import { FuncArgs } from "./functions/function"
 import { ErrorHandler } from "./structures/errorhandler"
 
 export function red(txt: string): string { return `\x1b[31m${txt}\x1b[0m`; }
@@ -16,6 +16,10 @@ export function isTruthy(value: TokenValue): boolean {
     
     if (value) return true;
     else return false;
+}
+
+export function isCallable(callee: any): callee is Callable {
+    return callee && callee.call && (typeof callee.call === "function") && callee.arity && (typeof callee.arity === "function");
 }
 
 export function getType(type: TokenValue): string {

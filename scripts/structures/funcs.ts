@@ -1,10 +1,6 @@
-import { LSTypes } from "../constants"
-import { LSClass } from "../functions/class"
-import { Function } from "../functions/function"
-import { Instance } from "../functions/instance"
 import { Interpreter } from "../core/interpreter"
 import { Token, TokenValue } from "../structures/token"
-import { capitilizeFirstLetter, getType } from "../helper"
+import { capitilizeFirstLetter, isCallable, getType } from "../helper"
 
 export type FuncObj = {
     arity(): [number, number],
@@ -25,10 +21,9 @@ export let Funcs: ModuleObj[] = [
             call(interpreter: Interpreter, token: Token, args: { token: Token, value: TokenValue }[]) {
                 let outputs = args.map(i => {
                     let value = i.value;
-                    if (value instanceof Function || value instanceof LSClass || value instanceof Instance) value = value.stringify();
+                    if (isCallable(value)) value = value.stringify();
                     return value;
                 });
-                
 
                 console.log(...outputs);
                 return null;

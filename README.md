@@ -1,7 +1,6 @@
-# LemonScript
-A programming language made with TypeScript.
+<h1><a href="https://plebussupremus1234.github.io/LemonScript/" target="_blank">LemonScript</a></h1>
 
-LemonScript is still in heavy development, and a todo list can be found [here](https://github.com/PlebusSupremus1234/LemonScript/projects/1).
+A programming language made with TypeScript.
 
 Here is a preview of LemonScript:
 ```js
@@ -20,25 +19,22 @@ func isPrime(num: Number): Boolean {
 
 print(isPrime(17)) # true
 ```
-Many more examples covering the functionality of LemonScript can be found [here](https://github.com/PlebusSupremus1234/LemonScript/tree/master/examples).
 
-A full list on all the functionality of LemonScript and how to use it can be found [here](https://github.com/PlebusSupremus1234/LemonScript/blob/master/documentation.md).
+Links:
+- [LemonScript's Official Website](https://plebussupremus1234.github.io/LemonScript/)
+- [LemonScript Installation](https://plebussupremus1234.github.io/LemonScript/docs/setup/intro)
+- [LemonScript's Documentation](https://plebussupremus1234.github.io/LemonScript/docs/documentation/intro)
+- [More Code Examples](https://plebussupremus1234.github.io/LemonScript/docs/examples/classes/class)
 
-## Installation
-Currently, LemonScript is not compiled, so you will have to:
-
-1. Clone/Download the repo, (make sure you have node.js installed)
-2. Install the dependencies with `npm install`.
-3. Run `ts-node index.ts` in the directory to run LemonScript.
-
-## Usage
-To start LemonScript, run `ts-node index.ts` in the directory. Then, you can either directly write code into the terminal, or run a file with `ls run [file]`. There are numerous existing tests and scripts you can run, for example `ls run tests/for-loop.lemon`.
+LemonScript is still in heavy development, and a todo list can be found [here](https://github.com/PlebusSupremus1234/LemonScript/projects/1).
 
 ## Change Log
 Starting from 12/7 because I forgot to do it before
 ```
+10/8: String properties
+07/8: LemonScript Website
 05/8: Added properties to modules
-02/8: Math Module
+02/8: Math module
 01/8: Documentation
 31/7: Random module
 30/7: Rewrite modules
@@ -48,12 +44,12 @@ Starting from 12/7 because I forgot to do it before
 25/7: Added multiple types for variables and function returns + documentation for it
 24/7: Added singular static typing for variables
 23/7: New error system, overriding for methods and print fixing
-22/7: Class Inheritance
+22/7: Class inheritance
 21/7: Added init function for classes and fixed order of op
 20/7: Function error fixed
 19/7: Classes
 18/7: Added a resolver, constant variables and fixed many bugs
-17/7: Added Functions and fixed the lexer
+17/7: Added functions and fixed the lexer
 16/7: Added for loop, documentation and fixed lexer
 14/7: Added if statement and while loop and fixed bugs
 12/7: Added scopes and variables

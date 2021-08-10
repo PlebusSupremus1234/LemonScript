@@ -3,14 +3,15 @@ import { Funcs } from "../structures/funcs"
 import { Environment } from "../structures/environment"
 import { Token, TokenValue } from "../structures/token"
 import { ErrorHandler } from "../structures/errorhandler"
-import { capitilizeFirstLetter, isTruthy, getType, checkType, checkArgType } from "../helper"
+import { capitilizeFirstLetter, isTruthy, isCallable, getType, checkType, checkArgType } from "../helper"
 
+import { Method } from "../modules/types"
 import { Module } from "../modules/module"
 import { Modules } from "../modules/modules"
-import { ModuleMethod } from "../modules/types"
+
+import { handlePrimitive } from "../primitives/primitives"
 
 import { LSClass } from "../functions/class"
-import { Callable } from "../functions/callable"
 import { Function } from "../functions/function"
 import { Instance } from "../functions/instance"
 import { ReturnException } from "../functions/return-exception"
@@ -37,7 +38,7 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
     interpret(statements: Stmt[]) {
         for (let statement of statements) {
             try { this.execute(statement); }
-            catch(e) { return console.log(this.errorhandler.stringify()); }
+            catch(e) { console.log(e);return console.log(this.errorhandler.stringify()); }
         }
     }
 
@@ -45,10 +46,6 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
     execute(stmt: Stmt) { stmt.accept(this); }
     resolve(expr: Expr, depth: number) { this.locals.set(expr, depth); }
     evaluate(expr: Expr): TokenValue { return expr.accept<TokenValue>(this); }
-    
-    isCallable(callee: any): callee is Callable {
-        return callee && callee.call && (typeof callee.call === "function") && callee.arity && (typeof callee.arity === "function");
-    }
 
     functionErr(text: string, type: string, line: number, pos: number) {
         throw this.errorhandler.newError(`Invalid Function ${type}`, text, line, pos);
@@ -155,7 +152,7 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
         }
 
         let current = (expr.callee as any).name;
-        if (!this.isCallable(callee)) throw this.functionErr("Can only call functions and classes", "Call", current.line, current.rowpos);
+        if (!isCallable(callee)) throw this.functionErr("Can only call functions and classes", "Call", current.line, current.rowpos);
 
         let fn = callee;
         current = expr.paren;
@@ -185,20 +182,14 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
 
     visitGetExpr(expr: Get) {
         let obj = this.evaluate(expr.obj);
+
+        if (["string"].includes(typeof obj)) return handlePrimitive(obj, expr.name, (expr.obj as any).value, this.errorhandler);
+
         if (obj instanceof Instance) return obj.get(expr.name, this.errorhandler);
 
-        if (obj instanceof Module) {
-            let result = obj.get(expr.name.stringify());
+        if (obj instanceof Module) return obj.get(expr.name, this.errorhandler);
 
-            if (!result) {
-                let text = `Property '${expr.name.stringify()}' does not exist in module ${obj.name} on line ${expr.name.line}`;
-                throw this.errorhandler.newError("Module Error", text, expr.name.line, expr.name.rowpos);
-            }
- 
-            return result;
-        }
-
-        let text = `Only instances have properties on line ${expr.name.line}`;
+        let text = `Property '${expr.name.stringify()}' does not exist on line ${expr.name.line}`;
         throw this.errorhandler.newError("Type Error", text, expr.name.line, expr.name.rowpos);
     }
 
@@ -344,7 +335,7 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
         let properties = new Map<string, TokenValue>();
         for (let i of module.properties) properties.set(i.name, i.value);
 
-        let methods = new Map<string, ModuleMethod>();        
+        let methods = new Map<string, Method>();        
         for (let i of module.methods) methods.set(i.name, i);
 
         this.environment.define(stmt.name, true, new Module(stmt.name.stringify(), methods, properties), "MODULE", ["Any"]);

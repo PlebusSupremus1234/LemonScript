@@ -9,6 +9,9 @@ type FunctionType = "NONE" | "FUNCTION" | "METHOD" | "INITIALIZER";
 import { Visitor as StmtVisitor, Stmt, Block, Class, Expression, Func, If, Import, Return, Var, While } from "../visitors/stmt"
 import { Visitor as ExprVisitor, Expr, Assign, Binary, Call, Get, Grouping, Literal, Logical, Self, Set, Super, Unary, Variable } from "../visitors/expr"
 
+import { LSString } from "../primitives/string"
+import { handlePrimitive, Primitives } from "../primitives/primitives"
+
 export class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
     interpreter: Interpreter;
     errorhandler: ErrorHandler;

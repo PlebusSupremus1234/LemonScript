@@ -7,7 +7,7 @@ const types = ["NUMBER", "STRING", "BOOLEAN", "NULL"] as const;
 const other = ["INDENTIFIER", "NATIVEFUNC", "TYPE", "EOF"] as const;
 const keywords = [
     "AND", "OR",
-    "CLASS", "FUNC",
+    "CLASS", "EXTENDS", "FUNC",
     "OVERRIDE", "RETURN", "SELF", "SUPER",
     "CONST", "VAR", "IDENTIFIER",
     "IF", "ELSE", "FOR", "WHILE",

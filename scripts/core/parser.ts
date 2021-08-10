@@ -3,6 +3,8 @@ import { TokenType, LSTypes } from "../constants"
 import { Token, TokenValue } from "../structures/token"
 import { ErrorHandler } from "../structures/errorhandler"
 
+import { LSString } from "../primitives/string"
+
 import { Stmt, Block, Class, Expression, Func, If, Import, Return, Var, While } from "../visitors/stmt"
 import { Expr, Assign, Binary, Call, Get, Grouping, Literal, Logical, Self, Set, Super, Unary, Variable } from "../visitors/expr"
 
@@ -91,7 +93,7 @@ export class Parser {
         let name = this.advance();
         
         let superclass: null | Variable = null;
-        if (this.match("LESS")) {
+        if (this.match("EXTENDS")) {
             text = `Expected a superclass name`;
             if (!this.check("IDENTIFIER")) this.genSyntaxErr(this.tokens[this.pos], text, 0);
             else {
@@ -299,20 +301,9 @@ export class Parser {
     }
 
     term(): Expr {
-        let expr = this.mod();
-
-        while (this.match("MINUS", "PLUS")) {
-            let operator = this.tokens[this.pos - 1];
-            let right = this.mod();
-            expr = new Binary(expr, operator, right);
-        }
-        return expr;
-    }
-
-    mod(): Expr {
         let expr = this.factor();
 
-        while (this.match("MOD")) {
+        while (this.match("MINUS", "PLUS")) {
             let operator = this.tokens[this.pos - 1];
             let right = this.factor();
             expr = new Binary(expr, operator, right);
@@ -321,9 +312,20 @@ export class Parser {
     }
 
     factor(): Expr {
-        let expr = this.power();
+        let expr = this.mod();
 
         while (this.match("DIV", "MUL")) {
+            let operator = this.tokens[this.pos - 1];
+            let right = this.mod();
+            expr = new Binary(expr, operator, right);
+        }
+        return expr;
+    }
+
+    mod(): Expr {
+        let expr = this.power();
+
+        while (this.match("MOD")) {
             let operator = this.tokens[this.pos - 1];
             let right = this.power();
             expr = new Binary(expr, operator, right);
@@ -367,7 +369,7 @@ export class Parser {
     }
 
     primary(): Expr {
-        if (this.match("NUMBER", "STRING", "BOOLEAN", "NULL")) {
+        if (this.match("STRING", "NUMBER", "BOOLEAN", "NULL")) {
             let token = this.tokens[this.pos - 1];
             let value: TokenValue;
 

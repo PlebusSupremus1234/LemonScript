@@ -1,5 +1,0 @@
-func addNums(num1: Number, num2: Number): Number {
-    return num1 + num2
-}
-
-print(addNums(1, "two")) # should error
