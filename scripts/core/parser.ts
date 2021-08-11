@@ -3,8 +3,6 @@ import { TokenType, LSTypes } from "../constants"
 import { Token, TokenValue } from "../structures/token"
 import { ErrorHandler } from "../structures/errorhandler"
 
-import { LSString } from "../primitives/string"
-
 import { Stmt, Block, Class, Expression, Func, If, Import, Return, Var, While } from "../visitors/stmt"
 import { Expr, Assign, Binary, Call, Get, Grouping, Literal, Logical, Self, Set, Super, Unary, Variable } from "../visitors/expr"
 
@@ -23,7 +21,7 @@ export class Parser {
         while (!this.isAtEnd()) {
             let statement: Stmt;
             try { statement = this.declaration(); }
-            catch(e) { return console.log(this.errorhandler.stringify()); }
+            catch(e) { return console.log(this.errorhandler.stringify(e)); }
             statements.push(statement);
         }
         return statements;
@@ -54,7 +52,7 @@ export class Parser {
 
         if (name.type !== "IDENTIFIER") {
             let text = `Variable name must be an identifier and cannot be a keyword, number, type or invalid symbol on line ${name.line}`;
-            throw this.errorhandler.newError("Invalid Variable Name", text, name.line, name.rowpos);
+            throw this.errorhandler.newError("Variable Error", text, name.line, name.rowpos);
         }
 
         let initializer: Expr | null = null;
@@ -243,8 +241,14 @@ export class Parser {
         let t = this.tokens[this.pos];
         let expr = this.or();
 
-        if (this.match("EQUAL")) {
+        if (this.match("EQUAL", "PLUSEQUAL", "MINUSEQUAL", "MULEQUAL", "DIVEQUAL", "MODEQUAL", "CARETEQUAL")) {
+            let token = this.tokens[this.pos - 1];
             let value = this.assignment();
+
+            if (token.type !== "EQUAL" && token.value) {
+                let newToken = new Token(token.type.substring(0, token.type.length - 5) as TokenType, (token.value as string)[0], token.line, token.rowpos);
+                value = new Binary(expr, newToken, value);
+            }
 
             if (expr instanceof Variable) return new Assign(expr.name, value);
             else if (expr instanceof Get) return new Set(expr.obj, expr.name, value);

@@ -8,14 +8,14 @@ export type TokenValue = null | boolean | number | string | Callable | Instance 
 export class Token {
     type: TokenType;
     value: TokenValue;
-    rowpos: number;
     line: number;
+    rowpos: number;
 
-    constructor(type: TokenType, value: TokenValue, rowpos: number, line: number) {
+    constructor(type: TokenType, value: TokenValue, line: number, rowpos: number) {
         this.type = type;
         this.value = value;
-        this.rowpos = rowpos;
         this.line = line;
+        this.rowpos = rowpos;
     }
 
     stringify(): string {

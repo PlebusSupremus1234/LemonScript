@@ -44,7 +44,7 @@ export function createMethod(obj: InputMethod): Method {
         name: obj.name,
         arguments: obj.arguments = [{ name: "num", types: ["Number"] }],
         arity() { return obj.arity },
-        stringify() { return `<func ${obj.name}>` },
+        stringify() { return `<method ${obj.name}>` },
         call(i: Interpreter, t: Token, args: { token: Token, value: TokenValue }[]) { return obj.call(args, i.errorhandler, t); }
     };
 }

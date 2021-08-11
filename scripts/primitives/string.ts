@@ -15,12 +15,15 @@ export class LSString {
         this.properties = initializeProperties(content);
     }
 
-    get(name: string) {
-        let result = this.properties.get(name);
-        if (result) return result;
+    get(name: string | number) {
+        if (typeof name === "number") return this.content[name];
+        else {
+            let result = this.properties.get(name);
+            if (result) return result;
 
-        result = this.methods.get(name);
-        return result ? result : null;
+            result = this.methods.get(name);
+            return result ? result : null;
+        }
     }
 
     stringify() { return this.content; }
@@ -41,7 +44,7 @@ function initializeMethods(content: string) {
             name: i.name,
             arguments: i.arguments,
             arity() { return i.arity as [number, number]; },
-            stringify() { return `<func ${i.name}>`; },
+            stringify() { return `<method ${i.name}>`; },
             call(e: Interpreter, t: Token, args: { token: Token, value: TokenValue }[]) {
                 return i.call(content, args, e.errorhandler);
             }
@@ -122,6 +125,22 @@ let StringMethods = [
             let replace = (args[1] as any).value;
 
             return content.replace(new RegExp(search, "g"), replace);
+        }
+    },
+    {
+        name: "get",
+        arguments: [{ name: "index", types: ["Number"] }],
+        arity: [1, 1],
+        call(content: string, args: { token: Token, value: TokenValue }[], e: ErrorHandler) {
+            let index = (args[0] as any).value;
+            let token = (args[0] as any).token;
+
+            if (index % 1 !== 0) throw e.newError("Invalid Function Call", `Expected a whole integer on line ${token.line}`, token.line, token.rowpos);
+
+            if (index < 0) index = content.length + index;
+            if (index >= content.length) throw e.newError("Invalid Function Call", `Index out of range on line ${token.line}`, token.line, token.rowpos);
+
+            return content[index];
         }
     }
 ];

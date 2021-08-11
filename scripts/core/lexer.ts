@@ -24,7 +24,7 @@ export class Lexer {
 
         while (!this.isAtEnd()) {
             try { this.genToken(); }
-            catch(e) { return console.log(this.errorhandler.stringify()); }
+            catch(e) { return console.log(this.errorhandler.stringify(e)); }
         }
         this.addToken("EOF", null);
         return this.tokens;
@@ -41,8 +41,13 @@ export class Lexer {
     }
     
     addToken(type: TokenType, value: TokenValue=this.currentChar, rowpos: number=this.rowpos, line: number=this.line) {
-        this.tokens.push(new Token(type, value, rowpos, line));
+        this.tokens.push(new Token(type, value, line, rowpos));
         this.advance();
+    }
+
+    twoChars(c1name: TokenType, c1: string, c2name: TokenType, c2: string, diff: string = "=") {
+        if (this.next(diff)) this.addToken(c2name, c2, this.rowpos - 1);
+        else this.addToken(c1name, c1, this.rowpos);
     }
 
     next(expected: string): boolean {
@@ -65,13 +70,12 @@ export class Lexer {
     // Main
     genToken() {
         switch (this.currentChar) {
-            case "+": this.addToken("PLUS"); break;
-            case "-": this.addToken("MINUS"); break;
-            case "*": this.addToken("MUL"); break;
-            case "/": this.addToken("DIV"); break;
-            case "%": this.addToken("MOD"); break;
-            case "^": this.addToken("CARET"); break;
-            case "/": this.addToken("DIV"); break;
+            case "+": this.twoChars("PLUS", "+", "PLUSEQUAL", "+="); break;
+            case "-": this.twoChars("MINUS", "-", "MINUSEQUAL", "-="); break;
+            case "*": this.twoChars("MUL", "*", "MULEQUAL", "*="); break;
+            case "/": this.twoChars("DIV", "/", "DIVEQUAL", "/="); break;
+            case "%": this.twoChars("MOD", "%", "MODEQUAL", "%="); break;
+            case "^": this.twoChars("CARET", "^", "CARETEQUAL", "^="); break;
             case "(": this.addToken("LPAREN"); break;
             case ")": this.addToken("RPAREN"); break;
             case "{": this.addToken("LBRACE"); break;
@@ -82,22 +86,10 @@ export class Lexer {
             case ",": this.addToken("COMMA"); break;
             case "|": this.addToken("PIPE"); break;
             case "?": this.addToken("EROTEME"); break;
-            case "!":
-                if (this.next("=")) this.addToken("BANGEQUAL", "!=", this.rowpos - 1);
-                else this.addToken("BANG", "!", this.rowpos);
-                break;
-            case "=":
-                if (this.next("=")) this.addToken("EQUALEQUAL", "==", this.rowpos - 1);
-                else this.addToken("EQUAL", "=", this.rowpos);
-                break;
-            case "<":
-                if (this.next("=")) this.addToken("LESSEQUAL", "<=", this.rowpos - 1);
-                else this.addToken("LESS", "<", this.rowpos);
-                break;
-            case ">":
-                if (this.next("=")) this.addToken("GREATEREQUAL", ">=", this.rowpos - 1);
-                else this.addToken("GREATER", ">", this.rowpos);
-                break;
+            case "!": this.twoChars("BANG", "!", "BANGEQUAL", "!="); break;
+            case "=": this.twoChars("EQUAL", "=", "EQUALEQUAL", "=="); break;
+            case "<": this.twoChars("LESS", "<", "LESSEQUAL", "<="); break;
+            case ">": this.twoChars("GREATER", ">", "GREATEREQUAL", ">="); break;
             case "#": // Comment Line
                 while (this.peek() !== "\n" && !this.isAtEnd()) this.advance();
                 this.advance();
@@ -113,8 +105,10 @@ export class Lexer {
                 let start = this.pos + 1;
                 let rowstart = this.rowpos;
                 let linestart = this.line;
+
                 while (this.peek() !== ending && !this.isAtEnd()) this.advance();
                 if (this.pos >= this.ftext.length || this.line !== linestart) this.genError(`String on line ${linestart} has no ending`, rowstart, linestart);
+
                 this.advance();
                 this.addToken("STRING", this.ftext.substring(start, this.pos), rowstart, linestart);
                 break;

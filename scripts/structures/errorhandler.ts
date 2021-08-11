@@ -1,10 +1,13 @@
 import { red, yellow, cyan, blue, bold } from "../helper"
 
+export type ErrorHeader = "Syntax Error" | "Type Error" | "Class Error" | "Math Error" | "Invalid Function Declaration" | "Invalid Function Call" | "Import Error"
+| "Variable Error" | "Invalid Class Declaration" | "Property Error";
+
 export class ErrorHandler {
     fname: string;
     ftext: string;
 
-    header?: string;
+    header?: ErrorHeader;
     text?: string;
     line?: number;
     rowpos?: number;
@@ -16,7 +19,7 @@ export class ErrorHandler {
         this.ftext = ftext;
     }
 
-    newError(header: string, text: string, line: number, rowpos: number) {
+    newError(header: ErrorHeader, text: string, line: number, rowpos: number) {
         if (!this.header && !this.text && !this.line && !this.rowpos) {
             this.header = header;
             this.text = text;
@@ -26,12 +29,10 @@ export class ErrorHandler {
     }
 
     newHelp(helptext: string) {
-        if  (!this.helptext) {
-            this.helptext = helptext;
-        }
+        if (!this.helptext) this.helptext = helptext;
     }
 
-    stringify() {
+    stringify(e: any) {
         if (this.header && this.text && this.line && this.rowpos) {
             let linetext = this.ftext.split("\n")[this.line - 1];
 
@@ -45,6 +46,6 @@ export class ErrorHandler {
 
             if (this.helptext) res += `\n${bold(`${yellow("help")}`)}${bold(`: ${this.helptext}`)}`;
             return res;
-        }
+        } else return e;
     }
 }

@@ -1,4 +1,4 @@
-<h1><a href="https://plebussupremus1234.github.io/LemonScript/" target="_blank">LemonScript</a></h1>
+# [LemonScript](https://plebussupremus1234.github.io/LemonScript/)
 
 A programming language made with TypeScript.
 
@@ -21,9 +21,9 @@ print(isPrime(17)) # true
 ```
 
 Links:
-- [LemonScript's Official Website](https://plebussupremus1234.github.io/LemonScript/)
+- [LemonScript Official Website](https://plebussupremus1234.github.io/LemonScript/)
 - [LemonScript Installation](https://plebussupremus1234.github.io/LemonScript/docs/setup/intro)
-- [LemonScript's Documentation](https://plebussupremus1234.github.io/LemonScript/docs/documentation/intro)
+- [LemonScript Documentation](https://plebussupremus1234.github.io/LemonScript/docs/documentation/intro)
 - [More Code Examples](https://plebussupremus1234.github.io/LemonScript/docs/examples/classes/class)
 
 LemonScript is still in heavy development, and a todo list can be found [here](https://github.com/PlebusSupremus1234/LemonScript/projects/1).
@@ -31,6 +31,7 @@ LemonScript is still in heavy development, and a todo list can be found [here](h
 ## Change Log
 Starting from 12/7 because I forgot to do it before
 ```
+11/8: String indexing and assignment operators
 10/8: String properties
 07/8: LemonScript Website
 05/8: Added properties to modules

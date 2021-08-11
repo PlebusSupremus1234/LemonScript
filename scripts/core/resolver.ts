@@ -194,7 +194,7 @@ export class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
     visitReturnStmt(stmt: Return) {
         let t = stmt.keyword;
         let text = `Cannot return in top-level code on line ${t.line}`;
-        if (this.currentFunction === "NONE") throw this.errorhandler.newError("Invalid Return", text, t.line, t.rowpos);
+        if (this.currentFunction === "NONE") throw this.errorhandler.newError("Invalid Function Declaration", text, t.line, t.rowpos);
         if (stmt.value !== null) {
             if (this.currentFunction === "INITIALIZER") {
                 text = `Cannot return in an initializer function`;

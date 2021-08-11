@@ -13,6 +13,7 @@ export function capitilizeFirstLetter(txt: string) { return txt.charAt(0).toUppe
 
 export function isTruthy(value: TokenValue): boolean {
     if (value === 0) return true;
+    if (value === "") return true;
     
     if (value) return true;
     else return false;

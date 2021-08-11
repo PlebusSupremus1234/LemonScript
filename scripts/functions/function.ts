@@ -63,7 +63,7 @@ export class Function implements Callable {
                         t = e.keyword;
                         text = `Expected return type ${this.returntypes.join(" | ")} but didn't recieve a return value on line ${t.line}`;
                     }
-                    throw interpreter.errorhandler.newError("Invalid Return Statement", text, t.line, t.rowpos);
+                    throw interpreter.errorhandler.newError("Invalid Function Declaration", text, t.line, t.rowpos);
                 }
                 return e.value;
             } else throw e;
@@ -74,7 +74,7 @@ export class Function implements Callable {
         if (!checkType(this.returntypes, null)) {
             let t = this.declaration.name;
             let text = `Expected return type ${this.returntypes.join(" | ")} but didn't recieve any for function '${t.value}' on line ${t.line}`;
-            throw interpreter.errorhandler.newError("Invalid Return Statement", text, t.line, t.rowpos);
+            throw interpreter.errorhandler.newError("Invalid Function Declaration", text, t.line, t.rowpos);
         }
 
         return null;

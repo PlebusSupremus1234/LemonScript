@@ -2,7 +2,7 @@ import { LSTypes } from "../constants"
 import { Funcs } from "../structures/funcs"
 import { Environment } from "../structures/environment"
 import { Token, TokenValue } from "../structures/token"
-import { ErrorHandler } from "../structures/errorhandler"
+import { ErrorHandler, ErrorHeader } from "../structures/errorhandler"
 import { capitilizeFirstLetter, isTruthy, isCallable, getType, checkType, checkArgType } from "../helper"
 
 import { Method } from "../modules/types"
@@ -38,7 +38,7 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
     interpret(statements: Stmt[]) {
         for (let statement of statements) {
             try { this.execute(statement); }
-            catch(e) { console.log(e);return console.log(this.errorhandler.stringify()); }
+            catch(e) { return console.log(this.errorhandler.stringify(e)); }
         }
     }
 
@@ -48,12 +48,12 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
     evaluate(expr: Expr): TokenValue { return expr.accept<TokenValue>(this); }
 
     functionErr(text: string, type: string, line: number, pos: number) {
-        throw this.errorhandler.newError(`Invalid Function ${type}`, text, line, pos);
+        throw this.errorhandler.newError(`Invalid Function ${type}` as ErrorHeader, text, line, pos);
     }
 
     binaryErr(kw1: string, kw2: string, v1: TokenValue, v2: TokenValue, op: Token, left: TokenValue) {
         let text = `Cannot ${kw1} type ${capitilizeFirstLetter(getType(v2))} ${kw2} type ${capitilizeFirstLetter(getType(v1))} on line ${op.line}`;
-        let token = this.tokens[this.tokens.findIndex(i => i.line === op.line && i.rowpos === op.rowpos) + (getType(left) !== "number" ? -1 : 1)];
+        let token = this.tokens[this.tokens.findIndex(i => i.line === op.line && i.rowpos === op.rowpos) + 1];
         throw this.errorhandler.newError("Type Error", text, token.line, token.rowpos);
     }
 
@@ -378,9 +378,9 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
 
     lookupVariable(name: Token, expr: Expr) {
         let distance = this.locals.get(expr);
-        let key = distance !== undefined ? this.environment.getAt(distance, "", name) : this.globals.get(name);
+        let key: TokenValue = distance !== undefined ? this.environment.getAt(distance, "", name) : this.globals.get(name);
         
-        if (key || key === 0) return key;
+        if (isTruthy(key)) return key;
         else return null;
     }
 }
