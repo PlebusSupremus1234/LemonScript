@@ -1,4 +1,5 @@
-import { TokenType } from "../constants"
+import { LSArray } from "./array"
+import { TokenType } from "../data/constants"
 import { Token, TokenValue } from "../structures/token"
 
 export interface Visitor<T> {
@@ -14,9 +15,17 @@ export interface Visitor<T> {
     visitSuperExpr: (expr: Super) => T;
     visitUnaryExpr: (expr: Unary) => T;
     visitVariableExpr: (expr: Variable) => T;
+
+    // visitArrayExpr: (expr: LSArray) => T;
 }
 
-export type Expr = Assign | Binary | Call | Get | Grouping | Literal | Logical | Self | Set | Super | Unary | Variable;
+let ExprArray = ["Assign", "Binary", "Call", "Get", "Grouping", "Literal", "Logical", "Self", "Set", "Super", "Unary", "Variable"];
+export function isExpr(value: any): boolean {
+    if (Array.isArray(value)) return true;
+    return ExprArray.includes(value.constructor.name);
+}
+
+export type Expr = Assign | Binary | Call | Get | Grouping | Literal | Logical | Self | Set | Super | Unary | Variable | Expr[];
 
 export class Assign {
     name: Token;
@@ -83,10 +92,14 @@ export class Grouping {
 export class Literal {
     type: TokenType;
     value: TokenValue;
+    line: number;
+    rowpos: number;
 
-    constructor(type: TokenType, value: TokenValue) {
+    constructor(type: TokenType, value: TokenValue, line: number, rowpos: number) {
         this.type = type;
         this.value = value;
+        this.line = line;
+        this.rowpos = rowpos;
     }
 
     accept<T>(visitor: Visitor<T>): T { return visitor.visitLiteralExpr(this); }

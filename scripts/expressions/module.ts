@@ -1,7 +1,6 @@
-import { Interpreter } from "../core/interpreter"
 import { Token, TokenValue } from "../structures/token"
 import { ErrorHandler } from "../structures/errorhandler"
-import { Method, ModuleMethodsMap, InputMethod, Argument } from "./types"
+import { ModuleMethodsMap } from "../data/types"
 
 export class Module {
     name: string;
@@ -29,22 +28,4 @@ export class Module {
     }
 
     stringify() { return `<module ${this.name}>`; }
-}
-
-export function copyMathMethod(name: string, methodname: string, args: Argument[] = [{ name: "num", types: ["Number"] }]) {
-    return createMethod({ name, arguments: args, arity: [args.length, args.length],
-        call(args: { token: Token, value: TokenValue }[]) {
-            return (Math as any)[methodname](...args.map(i => (i as any).value));
-        }
-    });
-}
-
-export function createMethod(obj: InputMethod): Method {
-    return {
-        name: obj.name,
-        arguments: obj.arguments = [{ name: "num", types: ["Number"] }],
-        arity() { return obj.arity },
-        stringify() { return `<method ${obj.name}>` },
-        call(i: Interpreter, t: Token, args: { token: Token, value: TokenValue }[]) { return obj.call(args, i.errorhandler, t); }
-    };
 }

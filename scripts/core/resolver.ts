@@ -6,11 +6,12 @@ type ClassType = "NONE" | "CLASS" | "SUBCLASS";
 type visitable = { accept: (visitor: any) => any; };
 type FunctionType = "NONE" | "FUNCTION" | "METHOD" | "INITIALIZER";
 
-import { Visitor as StmtVisitor, Stmt, Block, Class, Expression, Func, If, Import, Return, Var, While } from "../visitors/stmt"
-import { Visitor as ExprVisitor, Expr, Assign, Binary, Call, Get, Grouping, Literal, Logical, Self, Set, Super, Unary, Variable } from "../visitors/expr"
+import { Visitor as StmtVisitor, Stmt, Block, Class, Expression, Func, If, Import, Return, Var, While } from "../data/stmt"
+import { Visitor as ExprVisitor, Expr, Assign, Binary, Call, Get, Grouping, Literal, Logical, Self, Set, Super, Unary, Variable } from "../expressions/expr"
 
-import { LSString } from "../primitives/string"
-import { handlePrimitive, Primitives } from "../primitives/primitives"
+import { LSArray } from "../expressions/array"
+
+import { accept } from "../data/helper"
 
 export class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
     interpreter: Interpreter;
@@ -27,9 +28,9 @@ export class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
     // Functions
     beginScope() { this.scopes.push(new Map<string, boolean>()); }
     endScope() { this.scopes.pop(); }
-    resolve(...args: Array<visitable>) {
+    resolve(...args: (Expr | Stmt)[]) {
         for (let s of args) {
-            try { s.accept(this); }
+            try { accept(s, this as any); }
             catch (e) {
                 console.log(e.stringify());
                 return true;
@@ -70,6 +71,9 @@ export class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
 
         this.currentFunction = enclosingFunction;
     }
+
+    // Visit Primitives
+    visitArrayExpr(expr: LSArray) {}
 
     // Visit Expressions
     visitAssignExpr(expr: Assign) {

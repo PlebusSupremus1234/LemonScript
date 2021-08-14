@@ -1,4 +1,4 @@
-# [LemonScript](https://plebussupremus1234.github.io/LemonScript/)
+# <strong>[LemonScript](https://plebussupremus1234.github.io/LemonScript/)</strong>
 
 A programming language made with TypeScript.
 
@@ -31,6 +31,7 @@ LemonScript is still in heavy development, and a todo list can be found [here](h
 ## Change Log
 Starting from 12/7 because I forgot to do it before
 ```
+14/8: Arrays
 11/8: String indexing and assignment operators
 10/8: String properties
 07/8: LemonScript Website

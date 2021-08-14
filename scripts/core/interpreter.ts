@@ -1,23 +1,25 @@
-import { LSTypes } from "../constants"
-import { Funcs } from "../structures/funcs"
+import { LSTypes } from "../data/constants"
+import { Funcs } from "../data/funcs"
 import { Environment } from "../structures/environment"
 import { Token, TokenValue } from "../structures/token"
 import { ErrorHandler, ErrorHeader } from "../structures/errorhandler"
-import { capitilizeFirstLetter, isTruthy, isCallable, getType, checkType, checkArgType } from "../helper"
+import { capitilizeFirstLetter, isTruthy, isCallable, getType, checkType, checkArgType, accept, isEqual } from "../data/helper"
 
-import { Method } from "../modules/types"
-import { Module } from "../modules/module"
-import { Modules } from "../modules/modules"
-
-import { handlePrimitive } from "../primitives/primitives"
+import { Method } from "../data/types"
+import { Module } from "../expressions/module"
+import { Modules } from "../data/modules/modules"
 
 import { LSClass } from "../functions/class"
 import { Function } from "../functions/function"
 import { Instance } from "../functions/instance"
 import { ReturnException } from "../functions/return-exception"
 
-import { Visitor as StmtVisitor, Stmt, Block, Class, Expression, Func, If, Import, Return, Var, While } from "../visitors/stmt"
-import { Visitor as ExprVisitor, Expr, Assign, Binary, Call, Get, Grouping, Literal, Logical, Self, Set, Super, Unary, Variable } from "../visitors/expr"
+import { LSString } from "../expressions/string"
+import { LSNumber } from "../expressions/number"
+import { LSArray } from "../expressions/array"
+
+import { Visitor as StmtVisitor, Stmt, Block, Class, Expression, Func, If, Import, Return, Var, While } from "../data/stmt"
+import { Visitor as ExprVisitor, Expr, Assign, Binary, Call, Get, Grouping, Literal, Logical, Self, Set, Super, Unary, Variable } from "../expressions/expr"
 
 export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
     tokens: Token[];
@@ -45,7 +47,7 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
     // Functions
     execute(stmt: Stmt) { stmt.accept(this); }
     resolve(expr: Expr, depth: number) { this.locals.set(expr, depth); }
-    evaluate(expr: Expr): TokenValue { return expr.accept<TokenValue>(this); }
+    evaluate(expr: Expr): TokenValue { return accept(expr, this); }
 
     functionErr(text: string, type: string, line: number, pos: number) {
         throw this.errorhandler.newError(`Invalid Function ${type}` as ErrorHeader, text, line, pos);
@@ -75,6 +77,7 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
 
         switch (o.type) {
             case "PLUS":
+                if (Array.isArray(l)) return [...l, r];
                 if (typeof l === "number" && typeof r === "number") return l + r;
                 if ((typeof l === "number" || typeof l === "string") && (typeof r === "number" || typeof r === "string")) return String(l) + String(r);
                 this.binaryErr("add", "to", l, r, o, l);
@@ -126,8 +129,8 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
             case "LESSEQUAL":
                 if (typeof l === "number" && typeof r === "number") return l <= r;
                 this.binaryErr("compare", "with", r, l, o, l);
-            case "BANGEQUAL": return l !== r;
-            case "EQUALEQUAL": return l === r;
+            case "BANGEQUAL": return !isEqual(l, r);
+            case "EQUALEQUAL": return isEqual(l, r);
         }
         
         return null;
@@ -183,13 +186,15 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
     visitGetExpr(expr: Get) {
         let obj = this.evaluate(expr.obj);
 
-        if (["string"].includes(typeof obj)) return handlePrimitive(obj, expr.name, (expr.obj as any).value, this.errorhandler);
+        if (typeof obj === "string") return new LSString(obj).get(expr.name.stringify());
+        if (typeof obj === "number") return new LSNumber(obj).get(expr.name.stringify());
+        if (Array.isArray(obj)) return new LSArray(obj).get(expr.name.stringify());
 
         if (obj instanceof Instance) return obj.get(expr.name, this.errorhandler);
 
         if (obj instanceof Module) return obj.get(expr.name, this.errorhandler);
 
-        let text = `Property '${expr.name.stringify()}' does not exist on line ${expr.name.line}`;
+        let text = `Property '${expr.name.stringify()}' does not exist on '${obj}' on line ${expr.name.line}`;
         throw this.errorhandler.newError("Type Error", text, expr.name.line, expr.name.rowpos);
     }
 
@@ -284,7 +289,7 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
             let s = <Token>stmt.superclass.name;
             let index = this.tokens.findIndex(i => i.line === s.line && i.rowpos === s.rowpos);
             let token = this.tokens[index + 2];
-            this.environment.define(new Token("SUPER", "super", token.line, token.rowpos), true, superclass, "VAR", ["ANY"]);
+            this.environment.define(new Token("SUPER", "super", token.line, token.rowpos), true, superclass, "VAR", ["Any"]);
         }
 
         let methods: Map<string, Function> = new Map();
@@ -301,14 +306,14 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
 
         let _class = new LSClass(stmt.name.stringify(), superclass, methods);
         if (superclass !== null) this.environment = this.environment.enclosing ? this.environment.enclosing : this.environment;
-        this.environment.define(stmt.name, true, _class, "CLASS", ["ANY"]);
+        this.environment.define(stmt.name, true, _class, "CLASS", ["Any"]);
     }
 
     visitExpressionStmt(stmt: Expression) { this.evaluate(stmt.expression); }
 
     visitFuncStmt(stmt: Func) {
         let func = new Function(stmt, this.environment, false, stmt.returntypes);
-        this.environment.define(stmt.name, true, func, "FUNCTION", ["ANY"]);
+        this.environment.define(stmt.name, true, func, "FUNCTION", ["Any"]);
     }
 
     visitIfStmt(stmt: If) {
@@ -353,7 +358,7 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
         let value: TokenValue = null;
         if (stmt.initializer !== null) {
             value = this.evaluate(stmt.initializer);
-            let token = this.tokens[this.tokens.findIndex(i => i.line === stmt.name.line && i.rowpos === stmt.name.rowpos) + 4];
+            let token = stmt.initializer as Literal;
             if (!checkType(stmt.types, value)) {
                 let type = capitilizeFirstLetter((typeof value).toString());
                 let text = `Cannot assign type ${type} to a variable with type ${stmt.types.join(" | ")} on line ${token.line}`;

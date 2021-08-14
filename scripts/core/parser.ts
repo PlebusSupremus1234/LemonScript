@@ -1,10 +1,14 @@
 import { FuncArgs } from "../functions/function"
-import { TokenType, LSTypes } from "../constants"
+import { TokenType, LSTypes } from "../data/constants"
 import { Token, TokenValue } from "../structures/token"
 import { ErrorHandler } from "../structures/errorhandler"
 
-import { Stmt, Block, Class, Expression, Func, If, Import, Return, Var, While } from "../visitors/stmt"
-import { Expr, Assign, Binary, Call, Get, Grouping, Literal, Logical, Self, Set, Super, Unary, Variable } from "../visitors/expr"
+import { LSString } from "../expressions/string"
+import { LSNumber } from "../expressions/number"
+import { LSArray } from "../expressions/array"
+
+import { Stmt, Block, Class, Expression, Func, If, Import, Return, Var, While } from "../data/stmt"
+import { Expr, Assign, Binary, Call, Get, Grouping, Literal, Logical, Self, Set, Super, Unary, Variable } from "../expressions/expr"
 
 export class Parser {
     pos = 0;
@@ -65,7 +69,9 @@ export class Parser {
                 while (true) {
                     token = this.tokens[this.pos];
                     if (this.match("TYPE") && typeof token.value === "string") {
-                        types.push(token.value);
+                        let type = token.value as LSTypes;
+                        if (!types.includes(type)) types.push(type);
+
                         token = this.tokens[this.pos];
                         if (this.match("EQUAL")) initializer = this.expression();
                         
@@ -212,14 +218,15 @@ export class Parser {
         return false;
     }
 
-    getTypes() {
-        let returntypes: LSTypes[] = [];
+    getTypes(): LSTypes[] {
+        let types: LSTypes[] = [];
 
         let token = this.tokens[this.pos];
         while (true) {
             token = this.tokens[this.pos];
              if (this.match("TYPE") && typeof token.value === "string") {
-               returntypes.push(token.value);
+                let type = token.value as LSTypes;
+                if (!types.includes(type)) types.push(token.value as LSTypes);
                 
                 if (this.tokens[this.pos].type !== "PIPE") break;
                 this.advance();
@@ -229,7 +236,7 @@ export class Parser {
             }
         }
 
-        return returntypes.length > 0 ? returntypes : ["Any"];
+        return types.length > 0 ? types : ["Any"];
     }
 
     // Expressions
@@ -381,7 +388,7 @@ export class Parser {
             else if (token.type === "BOOLEAN") value = token.value === "true";
             else value = null;
 
-            return new Literal(token.type, value);
+            return new Literal(token.type, value, token.line, token.rowpos);
         }
 
         if (this.match("SUPER")) {
@@ -395,6 +402,20 @@ export class Parser {
             let method = this.advance();
 
             return new Super(keyword, method);
+        }
+
+        if (this.match("LBRACKET")) {
+            let args: Expr[] = [];
+            if (!this.check("RBRACKET")) {
+                do args.push(this.expression());
+                while (this.match("COMMA"));
+            }
+
+            let paren: Token;
+            if (!this.check("RBRACKET")) throw this.genSyntaxErr(this.tokens[this.pos], `Expected a ']' after array`, 0);
+            else paren = this.advance();
+
+            return args;
         }
 
         if (this.match("SELF")) return new Self(this.tokens[this.pos - 1]);
@@ -450,7 +471,7 @@ export class Parser {
         let body: Stmt = this.statement();
         if (increment !== null) body = new Block([body, new Expression(increment)]);
 
-        if (condition === null) condition = new Literal("BOOLEAN", true);
+        if (condition === null) condition = new Literal("BOOLEAN", true, 0, 0);
         body = new While(condition, body);
         if (initializer !== null) body = new Block([initializer, body]);
 
@@ -516,7 +537,7 @@ export class Parser {
     }
 
     finishCall(callee: Expr) {
-        let args = [];
+        let args: Expr[] = [];
         if (!this.check("RPAREN")) {
             do {
                 if (args.length >= 255) {
@@ -528,7 +549,7 @@ export class Parser {
         }
 
         let paren: Token;
-        if (!this.check("RPAREN")) throw this.genSyntaxErr(this.tokens[this.pos], `Expect ')' after function arguments`, 0);
+        if (!this.check("RPAREN")) throw this.genSyntaxErr(this.tokens[this.pos], `Expected a ')' after function arguments`, 0);
         else paren = this.advance();
 
         return new Call(callee, paren, args);

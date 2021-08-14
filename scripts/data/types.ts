@@ -1,4 +1,4 @@
-import { LSTypes } from "../constants"
+import { LSTypes } from "./constants"
 import { Callable } from "../functions/callable"
 import { Token, TokenValue } from "../structures/token"
 import { ErrorHandler } from "../structures/errorhandler"

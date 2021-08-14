@@ -1,7 +1,7 @@
-import { LSTypes } from "../constants"
+import { LSTypes } from "../data/constants"
 import { Token, TokenValue } from "./token"
-import { capitilizeFirstLetter, checkType } from "../helper"
-import { ErrorHandler, ErrorHeader } from "../structures/errorhandler"
+import { ErrorHandler, ErrorHeader } from "./errorhandler"
+import { capitilizeFirstLetter, checkType } from "../data/helper"
 
 type KeyType = "VAR" | "FUNCTION" | "CLASS" | "MODULE";
 type VarKey = {

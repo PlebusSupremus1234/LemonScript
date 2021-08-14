@@ -1,7 +1,7 @@
 const symbols = [
     "PLUS", "MINUS", "MUL", "DIV", "MOD", "CARET",
     "PLUSEQUAL", "MINUSEQUAL", "MULEQUAL", "DIVEQUAL", "MODEQUAL", "CARETEQUAL",
-    "LPAREN", "RPAREN", "LBRACE", "RBRACE",
+    "LPAREN", "RPAREN", "LBRACE", "RBRACE", "LBRACKET", "RBRACKET",
     "COLON", "SEMICOLON", "DOT", "COMMA", "PIPE", "EROTEME",
     "BANG", "BANGEQUAL", "EQUAL", "EQUALEQUAL", "LESS", "LESSEQUAL", "GREATER", "GREATEREQUAL",
 ] as const;
@@ -21,5 +21,5 @@ const tokentypes = [...symbols, ...types, ...other, ...keywords] as const;
 export type TokenType = typeof tokentypes[number];
 export let Keywords = keywords;
 
-export let LSTypesArray = ["Any", "Number", "String", "Boolean", "Null"];
+export let LSTypesArray = ["Any", "Number", "String", "Boolean", "Null", "Array"] as const;
 export type LSTypes = typeof LSTypesArray[number];

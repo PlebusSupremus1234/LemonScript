@@ -1,6 +1,6 @@
 import { Token, TokenValue } from "../structures/token"
 import { ErrorHandler } from "../structures/errorhandler"
-import { Keywords, TokenType, LSTypesArray } from "../constants"
+import { Keywords, TokenType, LSTypesArray, LSTypes } from "../data/constants"
 
 export class Lexer {
     fname: string;
@@ -33,7 +33,7 @@ export class Lexer {
     // Functions
     peek(): string { return this.ftext[this.pos + 1]; }
     isAtEnd(): boolean { return this.pos >= this.ftext.length; }
-    genError(text: string, rowpos: number = this.rowpos, line: number=this.line): void { throw this.errorhandler.newError("Syntax Error", text, line, rowpos); }
+    genError(text: string, rowpos: number = this.rowpos, line: number = this.line): void { throw this.errorhandler.newError("Syntax Error", text, line, rowpos); }
 
     isAlpha(text: string): boolean {
         if (!text) return false;
@@ -80,6 +80,8 @@ export class Lexer {
             case ")": this.addToken("RPAREN"); break;
             case "{": this.addToken("LBRACE"); break;
             case "}": this.addToken("RBRACE"); break;
+            case "[": this.addToken("LBRACKET"); break;
+            case "]": this.addToken("RBRACKET"); break;
             case ":": this.addToken("COLON"); break;
             case ";": this.addToken("SEMICOLON"); break;
             case ".": this.addToken("DOT"); break;
@@ -119,7 +121,7 @@ export class Lexer {
                     while (this.isAlpha(this.peek()) || "0123456789".includes(this.peek())) this.advance();
                     let text = this.ftext.substring(start, this.pos + 1);
 
-                    if (LSTypesArray.includes(text)) this.addToken("TYPE", text, rowstart);
+                    if (LSTypesArray.includes(text as LSTypes)) this.addToken("TYPE", text, rowstart);
                     else if (["true", "false"].includes(text)) this.addToken("BOOLEAN", text, rowstart);
                     else if (text === "null") this.addToken("NULL", text, rowstart);
                     else if (Keywords.map(i => i.toLowerCase()).includes(text)) this.addToken(text.toUpperCase() as TokenType, text, rowstart);
@@ -130,13 +132,12 @@ export class Lexer {
 
                     while ("0123456789".includes(this.peek())) this.advance();                
                     if (this.peek() === ".") {
-                        if ("0123456789".includes(this.ftext[this.pos + 2])) {
-                            this.advance();
+                        this.advance();
+                        if ("0123456789".includes(this.ftext[this.pos + 1])) {
                             while ("0123456789".includes(this.peek())) this.advance();
                         } else {
-                            this.advance();
                             if (this.peek()) this.advance();
-                            this.genError(`Illegal Character '${this.currentChar}' detected on line ${this.line}`, this.rowpos);
+                            this.genError(`Unexpected token '${this.currentChar}' detected on line ${this.line}`, this.rowpos);
                         }
                     }
                     this.addToken("NUMBER", parseFloat(this.ftext.substring(start, this.pos + 1)), rowstart);

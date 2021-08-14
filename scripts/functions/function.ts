@@ -1,13 +1,13 @@
+import { Func } from "../data/stmt"
 import { Instance } from "./instance"
 import { Callable } from "./callable"
-import { LSTypes } from "../constants"
-import { Func } from "../visitors/stmt"
+import { LSTypes } from "../data/constants"
 import { Token } from "../structures/token"
 import { Interpreter } from "../core/interpreter"
 import { ReturnException } from "./return-exception"
 import { Environment } from "../structures/environment"
 import { ErrorHandler } from "../structures/errorhandler"
-import { getType, checkType, capitilizeFirstLetter, checkArgType } from "../helper"
+import { getType, checkType, capitilizeFirstLetter, checkArgType } from "../data/helper"
 
 export type FuncArgs = {
     name: Token;

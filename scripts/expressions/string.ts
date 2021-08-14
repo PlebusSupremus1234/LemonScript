@@ -1,5 +1,5 @@
-import { Method } from "../modules/types"
 import { Interpreter } from "../core/interpreter"
+import { Argument, Method } from "../data/types"
 import { Token, TokenValue } from "../structures/token"
 import { ErrorHandler } from "../structures/errorhandler"
 
@@ -15,18 +15,13 @@ export class LSString {
         this.properties = initializeProperties(content);
     }
 
-    get(name: string | number) {
-        if (typeof name === "number") return this.content[name];
-        else {
-            let result = this.properties.get(name);
-            if (result) return result;
-
-            result = this.methods.get(name);
-            return result ? result : null;
-        }
+    get(name: string) {
+        let result = this.properties.get(name);
+        if (result) return result;
+        
+        result = this.methods.get(name);
+        return result ? result : null;
     }
-
-    stringify() { return this.content; }
 }
 
 function initializeProperties(content: string) {
@@ -42,7 +37,7 @@ function initializeMethods(content: string) {
     for (let i of StringMethods) {
         methods.set(i.name, {
             name: i.name,
-            arguments: i.arguments,
+            arguments: i.arguments as Argument[],
             arity() { return i.arity as [number, number]; },
             stringify() { return `<method ${i.name}>`; },
             call(e: Interpreter, t: Token, args: { token: Token, value: TokenValue }[]) {
@@ -55,19 +50,13 @@ function initializeMethods(content: string) {
 }
 
 let StringMethods = [
-    {
-        name: "index",
-        arguments: [{ name: "string", types: ["String"] }],
-        arity: [1, 1],
+    { name: "index", arguments: [{ name: "string", types: ["String"] }], arity: [1, 1],
         call(content: string, args: { token: Token, value: TokenValue }[]) {
             let output = content.indexOf((args[0] as any).value);
             return output === -1 ? null : output;
         }
     },
-    {
-        name: "trim",
-        arguments: [{ name: "character", types: ["String"] }],
-        arity: [0, 1],
+    { name: "trim", arguments: [{ name: "character", types: ["String"] }], arity: [0, 1],
         call(content: string, args: { token: Token, value: TokenValue }[], e: ErrorHandler) {
             if (args.length === 0) return content.trim();
             else {
@@ -89,10 +78,7 @@ let StringMethods = [
     },
     { name: "upper", arguments: [], arity: [0, 0], call(content: string, args: { token: Token, value: TokenValue }[]) { return content.toUpperCase(); } },
     { name: "lower", arguments: [], arity: [0, 0], call(content: string, args: { token: Token, value: TokenValue }[]) { return content.toLowerCase(); } },
-    {
-        name: "substr",
-        arguments: [{ name: "min", types: ["Number"] }, { name: "max", types: ["Number"] }],
-        arity: [1, 2],
+    { name: "slice", arguments: [{ name: "min", types: ["Number"] }, { name: "max", types: ["Number"] }], arity: [1, 2],
         call(content: string, args: { token: Token, value: TokenValue }[], e: ErrorHandler) {
             let min = (args[0] as any).value;
             let max = args.length === 1 ? content.length : (args[1] as any).value;
@@ -106,9 +92,19 @@ let StringMethods = [
             if (max < 0) max = content.length + max;
 
             token = (args[0] as any).token;
-            if ((min < 0 || min > content.length) && token) throw e.newError("Invalid Function Call", `Min index out of range on line ${token.line}`, token.line, token.rowpos);
+            let errored = false;
+
+            if ((min < 0 || min > content.length) && token) {
+                e.newError("Invalid Function Call", `Min index out of range on line ${token.line}`, token.line, token.rowpos);
+                errored = true;
+            }
             token = args[1] ? (args[1] as any).token : null;
-            if ((max < 0 || max > content.length) && token) throw e.newError("Invalid Function Call", `Max index out of range on line ${token.line}`, token.line, token.rowpos);
+            if ((max < 0 || max > content.length) && token) {
+                e.newError("Invalid Function Call", `Max index out of range on line ${token.line}`, token.line, token.rowpos);
+                errored = true;
+            }
+
+            if (errored) throw e.newHelp("Indices in LemonScript start at 0");
 
             token = (args[0] as any).token;
             if (min > max && token) throw e.newError("Invalid Function Call", `Min index is greater than max index on line ${token.line}`, token.line, token.rowpos);
@@ -116,10 +112,7 @@ let StringMethods = [
             return content.substring(min, max);
         }
     },
-    {
-        name: "replace",
-        arguments: [{ name: "search", types: ["String"] }, { name: "replace", types: ["String"] }],
-        arity: [2, 2],
+    { name: "replace", arguments: [{ name: "search", types: ["String"] }, { name: "replace", types: ["String"] }], arity: [2, 2],
         call(content: string, args: { token: Token, value: TokenValue }[]) {
             let search = (args[0] as any).value;
             let replace = (args[1] as any).value;
@@ -127,10 +120,7 @@ let StringMethods = [
             return content.replace(new RegExp(search, "g"), replace);
         }
     },
-    {
-        name: "get",
-        arguments: [{ name: "index", types: ["Number"] }],
-        arity: [1, 1],
+    { name: "get", arguments: [{ name: "index", types: ["Number"] }], arity: [1, 1],
         call(content: string, args: { token: Token, value: TokenValue }[], e: ErrorHandler) {
             let index = (args[0] as any).value;
             let token = (args[0] as any).token;
@@ -138,9 +128,18 @@ let StringMethods = [
             if (index % 1 !== 0) throw e.newError("Invalid Function Call", `Expected a whole integer on line ${token.line}`, token.line, token.rowpos);
 
             if (index < 0) index = content.length + index;
-            if (index >= content.length) throw e.newError("Invalid Function Call", `Index out of range on line ${token.line}`, token.line, token.rowpos);
+            if (index >= content.length) {
+                e.newError("Invalid Function Call", `Index out of range on line ${token.line}`, token.line, token.rowpos);
+                throw e.newHelp("Indices in LemonScript start at 0");
+            }
 
             return content[index];
+        }
+    },
+    { name: "split", arguments: [{ name: "text", types: ["String"] }], arity: [1, 1],
+        call(content: string, args: { token: Token, value: TokenValue }[]) {
+            let divisor = args[0].value;
+            return content.split(divisor as string);
         }
     }
 ];

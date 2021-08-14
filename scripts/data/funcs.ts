@@ -1,6 +1,6 @@
 import { Interpreter } from "../core/interpreter"
 import { Token, TokenValue } from "../structures/token"
-import { capitilizeFirstLetter, isCallable, getType } from "../helper"
+import { capitilizeFirstLetter, isCallable, getType } from "../data/helper"
 
 export type FuncObj = {
     arity(): [number, number],

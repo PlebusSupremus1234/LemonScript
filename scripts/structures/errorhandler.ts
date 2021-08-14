@@ -1,4 +1,4 @@
-import { red, yellow, cyan, blue, bold } from "../helper"
+import { red, yellow, cyan, blue, bold } from "../data/helper"
 
 export type ErrorHeader = "Syntax Error" | "Type Error" | "Class Error" | "Math Error" | "Invalid Function Declaration" | "Invalid Function Call" | "Import Error"
 | "Variable Error" | "Invalid Class Declaration" | "Property Error";

@@ -1,7 +1,7 @@
-import { LSTypes } from "../constants"
-import { Expr, Variable } from "./expr"
+import { LSTypes } from "./constants"
 import { Token } from "../structures/token"
 import { FuncArgs } from "../functions/function"
+import { Expr, Variable } from "../expressions/expr"
 
 export interface Visitor<T> {
     visitBlockStmt: (stmt: Block) => T;

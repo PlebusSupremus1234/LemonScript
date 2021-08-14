@@ -1,5 +1,5 @@
 import { ModuleType } from "../types"
-import { copyMathMethod, createMethod } from "../module"
+import { copyMathMethod, createMethod } from "../helper"
 import { Token, TokenValue } from "../../structures/token"
 import { ErrorHandler } from "../../structures/errorhandler"
 
