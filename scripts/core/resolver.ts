@@ -3,7 +3,6 @@ import { Interpreter } from "./interpreter"
 import { ErrorHandler } from "../structures/errorhandler"
 
 type ClassType = "NONE" | "CLASS" | "SUBCLASS";
-type visitable = { accept: (visitor: any) => any; };
 type FunctionType = "NONE" | "FUNCTION" | "METHOD" | "INITIALIZER";
 
 import { Visitor as StmtVisitor, Stmt, Block, Class, Expression, Func, If, Import, Return, Var, While } from "../data/stmt"

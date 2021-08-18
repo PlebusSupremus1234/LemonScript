@@ -3,10 +3,6 @@ import { TokenType, LSTypes } from "../data/constants"
 import { Token, TokenValue } from "../structures/token"
 import { ErrorHandler } from "../structures/errorhandler"
 
-import { LSString } from "../expressions/string"
-import { LSNumber } from "../expressions/number"
-import { LSArray } from "../expressions/array"
-
 import { Stmt, Block, Class, Expression, Func, If, Import, Return, Var, While } from "../data/stmt"
 import { Expr, Assign, Binary, Call, Get, Grouping, Literal, Logical, Self, Set, Super, Unary, Variable } from "../expressions/expr"
 
@@ -60,20 +56,39 @@ export class Parser {
         }
 
         let initializer: Expr | null = null;
+        let valueT: Token | null = null;
         let types: LSTypes[] = [];
 
-        if (this.match("EQUAL")) initializer = this.expression();
-        else {
+        if (this.match("EQUAL")) {
+            valueT = this.tokens[this.pos];
+            initializer = this.expression();
+        } else {
             let token = this.tokens[this.pos];
             if (this.match("COLON")) {
                 while (true) {
                     token = this.tokens[this.pos];
                     if (this.match("TYPE") && typeof token.value === "string") {
                         let type = token.value as LSTypes;
-                        if (!types.includes(type)) types.push(type);
+                        if (!types.includes(type)) {
+                            let push = type;
+                            if (type === "Array") {
+                                if (this.match("LESS")) push = this.getTypes();
+                                if (!this.match("GREATER")) {
+                                    token = this.tokens[this.pos - 1];
+                                    if (token) {
+                                        let rowpos = token.rowpos + (token.value as string).length;
+                                        throw this.errorhandler.newError("Syntax Error", `Expected an '>' after type on line ${token.line}`, token.line, rowpos);
+                                    }
+                                }
+                            }
+                            types.push(push);
+                        }
 
                         token = this.tokens[this.pos];
-                        if (this.match("EQUAL")) initializer = this.expression();
+                        if (this.match("EQUAL")) {
+                            valueT = this.tokens[this.pos];
+                            initializer = this.expression();
+                        }
                         
                         if (token.type !== "PIPE") break;
                         this.advance();
@@ -88,7 +103,7 @@ export class Parser {
             }
         }
 
-        return new Var(name, constant, types.length > 0 ? types : ["Any"], initializer);
+        return new Var(name, valueT, constant, types.length > 0 ? types : ["Any"], initializer);
     }
 
     classDeclaration() {
@@ -226,7 +241,20 @@ export class Parser {
             token = this.tokens[this.pos];
              if (this.match("TYPE") && typeof token.value === "string") {
                 let type = token.value as LSTypes;
-                if (!types.includes(type)) types.push(token.value as LSTypes);
+                if (!types.includes(type)) {
+                    let push = type;
+                    if (type === "Array") {
+                        if (this.match("LESS")) push = this.getTypes();
+                            if (!this.match("GREATER")) {
+                            token = this.tokens[this.pos - 1];
+                            if (token) {
+                                let rowpos = token.rowpos + (token.value as string).length;
+                                throw this.errorhandler.newError("Syntax Error", `Expected an '>' after type on line ${token.line}`, token.line, rowpos);
+                            }
+                        }
+                    }
+                    types.push(push);
+                }
                 
                 if (this.tokens[this.pos].type !== "PIPE") break;
                 this.advance();

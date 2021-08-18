@@ -1,4 +1,3 @@
-import { LSArray } from "./array"
 import { TokenType } from "../data/constants"
 import { Token, TokenValue } from "../structures/token"
 

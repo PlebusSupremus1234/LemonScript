@@ -1,11 +1,12 @@
-import { LSTypes } from "../data/constants"
 import { Funcs } from "../data/funcs"
-import { Environment } from "../structures/environment"
+import { VarKey, Environment } from "../structures/environment"
 import { Token, TokenValue } from "../structures/token"
 import { ErrorHandler, ErrorHeader } from "../structures/errorhandler"
-import { capitilizeFirstLetter, isTruthy, isCallable, getType, checkType, checkArgType, accept, isEqual } from "../data/helper"
 
-import { Method } from "../data/types"
+import { LSTypes } from "../data/constants"
+import { isTruthy, isCallable, accept, isEqual } from "../data/helper"
+import { Method, displayTypes, displayTypesPrimative, checkType, checkArgType } from "../data/types"
+
 import { Module } from "../expressions/module"
 import { Modules } from "../data/modules/modules"
 
@@ -14,9 +15,9 @@ import { Function } from "../functions/function"
 import { Instance } from "../functions/instance"
 import { ReturnException } from "../functions/return-exception"
 
+import { LSArray } from "../expressions/array"
 import { LSString } from "../expressions/string"
 import { LSNumber } from "../expressions/number"
-import { LSArray } from "../expressions/array"
 
 import { Visitor as StmtVisitor, Stmt, Block, Class, Expression, Func, If, Import, Return, Var, While } from "../data/stmt"
 import { Visitor as ExprVisitor, Expr, Assign, Binary, Call, Get, Grouping, Literal, Logical, Self, Set, Super, Unary, Variable } from "../expressions/expr"
@@ -53,8 +54,8 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
         throw this.errorhandler.newError(`Invalid Function ${type}` as ErrorHeader, text, line, pos);
     }
 
-    binaryErr(kw1: string, kw2: string, v1: TokenValue, v2: TokenValue, op: Token, left: TokenValue) {
-        let text = `Cannot ${kw1} type ${capitilizeFirstLetter(getType(v2))} ${kw2} type ${capitilizeFirstLetter(getType(v1))} on line ${op.line}`;
+    binaryErr(kw1: string, kw2: string, v1: TokenValue, v2: TokenValue, op: Token) {
+        let text = `Cannot ${kw1} type ${displayTypesPrimative(v2)} ${kw2} type ${displayTypesPrimative(v1)} on line ${op.line}`;
         let token = this.tokens[this.tokens.findIndex(i => i.line === op.line && i.rowpos === op.rowpos) + 1];
         throw this.errorhandler.newError("Type Error", text, token.line, token.rowpos);
     }
@@ -64,8 +65,9 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
         let value = this.evaluate(expr.value);
         let distance = this.locals.get(expr);
 
-        if (distance !== undefined) this.environment.assign(expr.name, value, this.tokens, true, distance);
-        else this.globals.assign(expr.name, value, this.tokens);
+        let valueStart = this.tokens[this.tokens.findIndex(i => i.line === expr.name.line && i.rowpos === expr.name.rowpos) + 2];
+        if (distance !== undefined) this.environment.assign(expr.name, value, valueStart, true, distance);
+        else this.globals.assign(expr.name, value, valueStart);
 
         return value;
     }
@@ -80,10 +82,10 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
                 if (Array.isArray(l)) return [...l, r];
                 if (typeof l === "number" && typeof r === "number") return l + r;
                 if ((typeof l === "number" || typeof l === "string") && (typeof r === "number" || typeof r === "string")) return String(l) + String(r);
-                this.binaryErr("add", "to", l, r, o, l);
+                this.binaryErr("add", "to", l, r, o);
             case "MINUS":
                 if (typeof l === "number" && typeof r === "number") return l - r;
-                this.binaryErr("subtract", "from", l, r, o, l);
+                this.binaryErr("subtract", "from", l, r, o);
             case "MUL":
                 if (typeof l === "number" && typeof r === "number") return l * r;
                 if (typeof l === "string" && typeof r === "number") {
@@ -93,7 +95,7 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
                         throw this.errorhandler.newError("Type Error", text, token.line, token.rowpos);
                     }
                     else return Array(r).fill(l).join("");
-                } else this.binaryErr("multiply", "to", l, r, o, l);
+                } else this.binaryErr("multiply", "to", l, r, o);
             case "DIV":
                 if (typeof l === "number" && typeof r === "number") {
                     if (r === 0) {
@@ -103,10 +105,10 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
                     }
                     return l / r;
                 }
-                this.binaryErr("divide", "from", l, r, o, l);
+                this.binaryErr("divide", "from", l, r, o);
             case "MOD":
                 if (typeof l === "number" && typeof r === "number") return l % r;
-                this.binaryErr("modulate", "from", l, r, o, l);
+                this.binaryErr("modulate", "from", l, r, o);
             case "CARET":
                 if (typeof l === "number" && typeof r === "number") {
                     if (l < 0 && r < 1 && r > 0) {
@@ -116,19 +118,19 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
                     }
                     return l ** r;
                 }
-                this.binaryErr("exponentialize", "from", l, r, o, l);
+                this.binaryErr("exponentialize", "from", l, r, o);
             case "GREATER":
                 if (typeof l === "number" && typeof r === "number") return l > r;
-                this.binaryErr("compare", "with", r, l, o, l);
+                this.binaryErr("compare", "with", r, l, o);
             case "GREATEREQUAL":
                 if (typeof l === "number" && typeof r === "number") return l >= r;
-                this.binaryErr("compare", "with", r, l, o, l);
+                this.binaryErr("compare", "with", r, l, o);
             case "LESS":
                 if (typeof l === "number" && typeof r === "number") return l < r;
-                this.binaryErr("compare", "with", r, l, o, l);
+                this.binaryErr("compare", "with", r, l, o);
             case "LESSEQUAL":
                 if (typeof l === "number" && typeof r === "number") return l <= r;
-                this.binaryErr("compare", "with", r, l, o, l);
+                this.binaryErr("compare", "with", r, l, o);
             case "BANGEQUAL": return !isEqual(l, r);
             case "EQUALEQUAL": return isEqual(l, r);
         }
@@ -138,13 +140,24 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
 
     visitCallExpr(expr: Call) {
         let callee = this.evaluate(expr.callee);
-        let token: Token;
+        let line: number;
+        let rowpos: number;
         
-        if (expr.callee instanceof Variable) token = (expr.callee as Variable).name;
-        else if (expr.callee instanceof Super) token = (expr.callee as Super).method;
-        else token = (expr.callee as Get).name;
-
-        let idx = this.tokens.findIndex(i => i.line === token.line && i.rowpos === token.rowpos) + 2;
+        if (expr.callee instanceof Variable) {
+            let token = (expr.callee as Variable).name;
+            line = token.line; rowpos = token.rowpos;
+        } else if (expr.callee instanceof Super) {
+            let token = (expr.callee as Super).method;
+            line = token.line; rowpos = token.rowpos;
+        } else if (expr.callee instanceof Get) {
+            let token = (expr.callee as Get).name;
+            line = token.line; rowpos = token.rowpos;
+        } else {
+            line = (expr.callee as any).line;
+            rowpos = (expr.callee as any).rowpos;
+        }
+        
+        let idx = this.tokens.findIndex(i => i.line === line && i.rowpos === rowpos) + 2;
 
         let args = [];
         for (let arg of expr.args) {
@@ -154,11 +167,10 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
             idx++;
         }
 
-        let current = (expr.callee as any).name;
-        if (!isCallable(callee)) throw this.functionErr("Can only call functions and classes", "Call", current.line, current.rowpos);
+        if (!isCallable(callee)) throw this.functionErr("Can only call functions and classes", "Call", line, rowpos);
 
         let fn = callee;
-        current = expr.paren;
+        let current = expr.paren;
         
         let arity = fn.arity();
         let expected = arity[0] === arity[1] ? arity[0] : `${arity[0]}-${arity[1]}`;
@@ -168,7 +180,7 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
         let funcArgs = (fn as any).arguments;
 
         if (!(fn instanceof Function) && funcArgs) {
-            let defaultArgType: LSTypes[] = ["Any"]; // This is just for conserving the argument type in module methods
+            let defaultArgType: LSTypes[] = ["Any"]; // This is just for conserving the argument type in methods
 
             for (let i = 0; i < args.length; i++) {
                 let arg = funcArgs[i];
@@ -188,7 +200,15 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
 
         if (typeof obj === "string") return new LSString(obj).get(expr.name.stringify());
         if (typeof obj === "number") return new LSNumber(obj).get(expr.name.stringify());
-        if (Array.isArray(obj)) return new LSArray(obj).get(expr.name.stringify());
+        if (Array.isArray(obj)) {
+            let data: [LSTypes[], boolean] = [["Any"], false];
+            if (expr.obj instanceof Variable) {
+                let variable = this.lookupVariable((expr.obj as any).name, expr.obj, true) as VarKey;
+                data = [variable.types, variable.constant];
+            }
+            
+            return new LSArray(obj, ...data).get(expr.name.stringify());
+        }
 
         if (obj instanceof Instance) return obj.get(expr.name, this.errorhandler);
 
@@ -214,7 +234,7 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
         return this.evaluate(expr.right);
     }
 
-    visitSelfExpr(expr: Self) { return this.lookupVariable(expr.keyword, expr); }
+    visitSelfExpr(expr: Self) { return this.lookupVariable(expr.keyword, expr) as TokenValue; }
     
     visitSetExpr(expr: Set) {
         let obj = this.evaluate(expr.obj);
@@ -266,7 +286,7 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
         return null;
     }
 
-    visitVariableExpr(expr: Variable) { return this.lookupVariable(expr.name, expr); }
+    visitVariableExpr(expr: Variable) { return this.lookupVariable(expr.name, expr) as TokenValue; }
 
     // Visit Statements
     visitBlockStmt(stmt: Block) {
@@ -358,11 +378,11 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
         let value: TokenValue = null;
         if (stmt.initializer !== null) {
             value = this.evaluate(stmt.initializer);
-            let token = stmt.initializer as Literal;
-            if (!checkType(stmt.types, value)) {
-                let type = capitilizeFirstLetter((typeof value).toString());
-                let text = `Cannot assign type ${type} to a variable with type ${stmt.types.join(" | ")} on line ${token.line}`;
-                throw this.errorhandler.newError("Type Error", text, token.line, token.rowpos);
+
+            if (!checkType(stmt.types, value) && stmt.value) {
+                let type = displayTypesPrimative(value);
+                let text = `Cannot assign type ${type} to a variable with type ${displayTypes(stmt.types)} on line ${stmt.value.line}`;
+                throw this.errorhandler.newError("Type Error", text, stmt.value.line, stmt.value.rowpos);
             }
         }
 
@@ -381,11 +401,12 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
         finally { this.environment = previous; }
     }
 
-    lookupVariable(name: Token, expr: Expr) {
+    lookupVariable(name: Token, expr: Expr, whole = false) {
         let distance = this.locals.get(expr);
-        let key: TokenValue = distance !== undefined ? this.environment.getAt(distance, "", name) : this.globals.get(name);
-        
-        if (isTruthy(key)) return key;
+        let key = distance !== undefined ? this.environment.getAt(distance, "", name, whole) : this.globals.get(name, true, whole);
+
+        if (whole) return key;
+        if (key === false || isTruthy(key as TokenValue)) return key;
         else return null;
     }
 }

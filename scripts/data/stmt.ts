@@ -105,12 +105,14 @@ export class Return {
 
 export class Var {
     name: Token;
+    value: Token | null;
     types: LSTypes[];
     constant: boolean;
     initializer: Expr | null;
 
-    constructor(name: Token, constant: boolean, types: LSTypes[], initializer: Expr | null) {
+    constructor(name: Token, value: Token | null, constant: boolean, types: LSTypes[], initializer: Expr | null) {
         this.name = name;
+        this.value = value;
         this.types = types;
         this.constant = constant;
         this.initializer = initializer;

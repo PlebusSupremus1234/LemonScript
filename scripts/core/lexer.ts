@@ -1,6 +1,6 @@
 import { Token, TokenValue } from "../structures/token"
 import { ErrorHandler } from "../structures/errorhandler"
-import { Keywords, TokenType, LSTypesArray, LSTypes } from "../data/constants"
+import { Keywords, TokenType, LSTypesArray } from "../data/constants"
 
 export class Lexer {
     fname: string;
@@ -121,7 +121,7 @@ export class Lexer {
                     while (this.isAlpha(this.peek()) || "0123456789".includes(this.peek())) this.advance();
                     let text = this.ftext.substring(start, this.pos + 1);
 
-                    if (LSTypesArray.includes(text as LSTypes)) this.addToken("TYPE", text, rowstart);
+                    if (LSTypesArray.includes(text as any)) this.addToken("TYPE", text, rowstart);
                     else if (["true", "false"].includes(text)) this.addToken("BOOLEAN", text, rowstart);
                     else if (text === "null") this.addToken("NULL", text, rowstart);
                     else if (Keywords.map(i => i.toLowerCase()).includes(text)) this.addToken(text.toUpperCase() as TokenType, text, rowstart);

@@ -1,13 +1,14 @@
 import { Func } from "../data/stmt"
 import { Instance } from "./instance"
 import { Callable } from "./callable"
-import { LSTypes } from "../data/constants"
-import { Token } from "../structures/token"
 import { Interpreter } from "../core/interpreter"
 import { ReturnException } from "./return-exception"
+import { Token, TokenValue } from "../structures/token"
 import { Environment } from "../structures/environment"
 import { ErrorHandler } from "../structures/errorhandler"
-import { getType, checkType, capitilizeFirstLetter, checkArgType } from "../data/helper"
+
+import { LSTypes } from "../data/constants"
+import { displayTypesPrimative, checkType, checkArgType } from "../data/types"
 
 export type FuncArgs = {
     name: Token;
@@ -44,8 +45,8 @@ export class Function implements Callable {
 
         for (let i = 0; i < this.declaration.params.length; i++) {
             let param = this.declaration.params[i];
+
             checkArgType(param.name.stringify(), param.types, args[i], interpreter.errorhandler);
-            
             environment.define(param.name, false, args[i] ? args[i].value : null, "VAR", ["Any"]);
         }
 
@@ -57,7 +58,7 @@ export class Function implements Callable {
                     let t: Token;
                     if (e.token) {
                         t = e.token;
-                        let type = capitilizeFirstLetter(getType(e.value));
+                        let type = displayTypesPrimative(e.value);
                         text = `Expected return type ${this.returntypes.join(" | ")}, but got type ${type} on line ${t.line}`;
                     } else {
                         t = e.keyword;
@@ -69,7 +70,7 @@ export class Function implements Callable {
             } else throw e;
         }
 
-        if (this.isInit) return this.closure.getAt(0, "self");        
+        if (this.isInit) return this.closure.getAt(0, "self") as TokenValue;        
         
         if (!checkType(this.returntypes, null)) {
             let t = this.declaration.name;

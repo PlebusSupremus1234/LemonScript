@@ -1,18 +1,19 @@
-import { isEqual, getType } from "../data/helper"
-import { Interpreter } from "../core/interpreter"
-import { Argument, Method } from "../data/types"
 import { Token, TokenValue } from "../structures/token"
 import { ErrorHandler } from "../structures/errorhandler"
+
+import { LSTypes } from "../data/constants"
+import { isTruthy, isEqual, initializeMethods } from "../data/helper"
+import { Method, getType, checkType, displayTypes, displayTypesPrimative } from "../data/types"
 
 export class LSArray {
     content: TokenValue[];
     methods: Map<string, Method>;
     properties: Map<string, TokenValue>;
 
-    constructor(content: TokenValue[]) {
+    constructor(content: TokenValue[], types: LSTypes[], constant: boolean) {
         this.content = content;
 
-        this.methods = initializeMethods(content);
+        this.methods = initializeMethods(ArrayMethods, content, types, constant);
         this.properties = initializeProperties(content);
     }
 
@@ -21,7 +22,7 @@ export class LSArray {
         if (result) return result;
         
         result = this.methods.get(name);
-        return result ? result : null;
+        return result !== undefined && isTruthy(result) ? result : null;
     }
 }
 
@@ -30,24 +31,6 @@ function initializeProperties(content: TokenValue[]) {
 
     p.set("length", content.length);
     return p;
-}
-
-function initializeMethods(content: TokenValue[]) {
-    let methods = new Map<string, Method>();
-
-    for (let i of ArrayMethods) {
-        methods.set(i.name, {
-            name: i.name,
-            arguments: i.arguments as Argument[],
-            arity() { return i.arity as [number, number]; },
-            stringify() { return `<method ${i.name}>`; },
-            call(e: Interpreter, t: Token, args: { token: Token, value: TokenValue }[]) {
-                return i.call(content, args, e.errorhandler);
-            }
-        });
-    }
-
-    return methods;
 }
 
 let ArrayMethods = [
@@ -73,15 +56,40 @@ let ArrayMethods = [
         }
     },
     { name: "push", arguments: [], arity: [1, 255],
-        call(content: TokenValue[], args: { token: Token, value: TokenValue }[]) {
-            content.push(...args.map(i => i.value));
+        call(content: TokenValue[], args: { token: Token, value: TokenValue }[], e: ErrorHandler, types: LSTypes[], constant: boolean) {
+            if (constant) {
+                let token = args[0].token;
+                throw e.newError(
+                    "Invalid Function Call",
+                    `Cannot push elements to a constant array on line ${token.line}`,
+                    token.line,
+                    token.rowpos
+                );
+            }
+
+            for (let i of args) {
+                content.push(i.value);
+                if (!checkType(types, content)) {
+                    content.pop();
+
+                    let type = displayTypesPrimative(i.value);
+                    let atype = displayTypes(types);
+                    let token = i.token;
+                    throw e.newError(
+                        "Invalid Function Call",
+                        `Value of type ${type} cannot be appended to array with type ${atype} on line ${token.line}`,
+                        token.line, token.rowpos
+                    );
+                }
+            }
+
             return null;
         }
     },
     { name: "pop", arguments: [], arity: [0, 0],
         call(content: TokenValue[]) {
             let output = content.pop();
-            return output ? output : null;
+            return output !== undefined && isTruthy(output) ? output : null;
         }
     },
     { name: "index", arguments: [{ name: "value", types: ["Any"] }], arity: [1, 1],
@@ -170,7 +178,17 @@ let ArrayMethods = [
         }
     },
     { name: "set", arguments: [{ name: "index", types: ["Any"] }, { name: "value", types: ["Any"] }], arity: [2, 2],
-        call(content: TokenValue[], args: { token: Token, value: TokenValue }[], e: ErrorHandler) {
+        call(content: TokenValue[], args: { token: Token, value: TokenValue }[], e: ErrorHandler, types: LSTypes[], constant: boolean) {
+            if (constant) {
+                let token = args[0].token;
+                throw e.newError(
+                    "Invalid Function Call",
+                    `Cannot change elements in a constant array on line ${token.line}`,
+                    token.line,
+                    token.rowpos
+                );
+            }
+
             let index = args[0].value;
             let value = args[1].value;
 
@@ -180,7 +198,23 @@ let ArrayMethods = [
                 throw e.newHelp("Indices in LemonScript start at 0");
             }
 
-            content.splice(index as number, 1, value);
+            content.splice(index as number, 0, value);
+
+            if (!checkType(types, content)) {
+                content.splice(index as number, 1);
+                
+                let type = displayTypesPrimative(value);
+                let atype = displayTypes(types);
+                let token = args[1].token;
+
+                throw e.newError(
+                    "Invalid Function Call",
+                    `Value of type ${type} cannot be set in an array with type ${atype} on line ${token.line}`,
+                    token.line, token.rowpos
+                );
+            }
+
+            content.splice(index as number + 1, 1);
 
             return null;
         }
@@ -207,5 +241,79 @@ let ArrayMethods = [
             return array;
         }
     },
-    { name: "copy", arguments: [], arity: [0, 0], call(content: TokenValue[]) { return JSON.parse(JSON.stringify(content)); } }
+    { name: "copy", arguments: [], arity: [0, 0], call(content: TokenValue[]) { return JSON.parse(JSON.stringify(content)); } },
+    { name: "replace", arguments: [{ name: "value", types: ["Any"] }, { name: "replacer", types: ["Any"] }], arity: [2, 2],
+        call(content: TokenValue[], args: { token: Token, value: TokenValue }[], e: ErrorHandler, types: LSTypes[], constant: boolean) {
+            if (constant) {
+                let token = args[0].token;
+                throw e.newError(
+                    "Invalid Function Call",
+                    `Cannot change elements in a constant array on line ${token.line}`,
+                    token.line,
+                    token.rowpos
+                );
+            }
+
+            let value = args[0].value;
+            let replacer = args[1].value;
+            
+            content.push(replacer);
+            if (!checkType(types, content)) {
+                content.pop();
+
+                let token = args[1].token;
+                let t1 = displayTypesPrimative(args[1].value);
+                let t2 = displayTypes(types);
+
+                throw e.newError(
+                    "Invalid Function Call",
+                    `Type ${t1} cannot be used to replace elements in an array with type ${t2} on line ${token.line}`,
+                    token.line,
+                    token.rowpos
+                );
+            }
+            
+            content.pop();
+
+            for (let i = 0; i < content.length; i++) {
+                if (isEqual(content[i], value)) content.splice(i, 1, replacer);
+            }
+
+            return null;
+        }
+    },
+    { name: "insert", arguments: [{ name: "index", types: ["Number"] }, { name: "value", types: ["Any"] }], arity: [2, 2],
+        call(content: TokenValue[], args: { token: Token, value: TokenValue }[], e: ErrorHandler, types: LSTypes[], constant: boolean) {
+            let index = args[0].value as any;
+            let value = args[1].value;
+
+            content.push(value);
+            if (!checkType(types, content)) {
+                content.pop();
+                let token = args[1].token;
+                let type = displayTypesPrimative(value);
+                let atype = displayTypes(types);
+
+                throw e.newError(
+                    "Invalid Function Call",
+                    `Value of type ${type} cannot be inserted to array with type ${atype} on line ${token.line}`,
+                    token.line, token.rowpos
+                );
+            }
+
+            content.pop();
+
+            let token  = args[0].token;
+            if (index % 1 !== 0) throw e.newError("Invalid Function Call", `Expected a whole integer on line ${token.line}`, token.line, token.rowpos);
+
+            if (index < 0) index = content.length + index;
+            if (index >= content.length) {
+                e.newError("Invalid Function Call", `Index out of range on line ${token.line}`, token.line, token.rowpos);
+                throw e.newHelp("Indices in LemonScript start at 0");
+            }
+
+            content.splice(index, 0, value);
+            return null;
+        }
+    }
 ];

@@ -1,5 +1,6 @@
-import { Interpreter } from "../core/interpreter"
-import { Argument, Method } from "../data/types"
+import { Method } from "../data/types"
+import { initializeMethods, isTruthy } from "../data/helper"
+
 import { Token, TokenValue } from "../structures/token"
 import { ErrorHandler } from "../structures/errorhandler"
 
@@ -11,7 +12,7 @@ export class LSString {
     constructor(content: string) {
         this.content = content;
 
-        this.methods = initializeMethods(content);
+        this.methods = initializeMethods(StringMethods, content, ["Any"], false);
         this.properties = initializeProperties(content);
     }
 
@@ -29,24 +30,6 @@ function initializeProperties(content: string) {
 
     p.set("length", content.length);
     return p;
-}
-
-function initializeMethods(content: string) {
-    let methods = new Map<string, Method>();
-
-    for (let i of StringMethods) {
-        methods.set(i.name, {
-            name: i.name,
-            arguments: i.arguments as Argument[],
-            arity() { return i.arity as [number, number]; },
-            stringify() { return `<method ${i.name}>`; },
-            call(e: Interpreter, t: Token, args: { token: Token, value: TokenValue }[]) {
-                return i.call(content, args, e.errorhandler);
-            }
-        });
-    }
-
-    return methods;
 }
 
 let StringMethods = [
@@ -140,6 +123,12 @@ let StringMethods = [
         call(content: string, args: { token: Token, value: TokenValue }[]) {
             let divisor = args[0].value;
             return content.split(divisor as string);
+        }
+    },
+    { name: "number", arguments: [], arity: [0, 0],
+        call(content: string) {
+            let number = parseFloat(content);
+            return isTruthy(number) ? number : null;
         }
     }
 ];

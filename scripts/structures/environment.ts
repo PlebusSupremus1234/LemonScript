@@ -1,10 +1,11 @@
 import { LSTypes } from "../data/constants"
 import { Token, TokenValue } from "./token"
 import { ErrorHandler, ErrorHeader } from "./errorhandler"
-import { capitilizeFirstLetter, checkType } from "../data/helper"
+import { capitilizeFirstLetter } from "../data/helper"
+import { checkType, displayTypesPrimative, displayTypes } from "../data/types"
 
 type KeyType = "VAR" | "FUNCTION" | "CLASS" | "MODULE";
-type VarKey = {
+export type VarKey = {
     constant: boolean;
     type: KeyType;
     types: LSTypes[];
@@ -27,6 +28,7 @@ export class Environment {
             let text = `Cannot redefine ${key.type.toLowerCase()} '${name.stringify()}' on line ${name.line}`;
             throw this.errorhandler.newError(`Invalid ${capitilizeFirstLetter(key.type.toLowerCase())} Declaration` as ErrorHeader, text, name.line, name.rowpos);
         }
+
         this.values.set(name.stringify(), { constant, value, type, types });
     }
 
@@ -39,10 +41,11 @@ export class Environment {
         return environment;
     }
 
-    get(name: Token, error: boolean = true): TokenValue {
+    get(name: Token, error: boolean = true, whole = false): TokenValue | VarKey {
         let key = this.values.has(name.stringify()) ? this.values.get(name.stringify()) : undefined;
-        if (key && key.value !== undefined) return key.value;
-        else if (this.enclosing) return this.enclosing.get(name);
+
+        if (key && key.value !== undefined) return whole ? key : key.value;
+        else if (this.enclosing) return this.enclosing.get(name, whole);
         else if (error) {
             let text = `Undefined variable '${name.stringify()}' detected on line ${name.line}`;
             throw this.errorhandler.newError("Variable Error", text, name.line, name.rowpos);
@@ -51,16 +54,18 @@ export class Environment {
         return null;
     }
 
-    getAt(distance: number, name: string, token?: Token) {
+    getAt(distance: number, name: string, token?: Token, whole = false): TokenValue | VarKey {
         let ancestor = this.ancestor(distance);
         if (ancestor) {
             let key = ancestor.values.get(token ? token.stringify() : name);
-            return key && key.value !== undefined ? key.value : null;
+
+            if (whole) return key ? key : null;
+            else return key && key.value !== undefined ? key.value : null;
         }
         return null;
     }
 
-    assign(name: Token, value: TokenValue, tokens: Token[], ancestor?: boolean, distance?: number) {
+    assign(name: Token, value: TokenValue, valueStart: Token, ancestor?: boolean, distance?: number) {
         let collection = this.values;
         if (ancestor) {
             if (!distance) return;
@@ -77,14 +82,13 @@ export class Environment {
                     throw this.errorhandler.newError("Variable Error", text, name.line, name.rowpos);
                 } else {
                     if (!checkType(key.types, value)) {
-                        let token = tokens[tokens.findIndex(i => i.line === name.line && i.rowpos === name.rowpos) + 2];
-                        let type = capitilizeFirstLetter((typeof value).toString());
-                        let text = `Cannot assign type ${type} to a variable with type ${key.types.join(" | ")} on line ${token.line}`;
-                        throw this.errorhandler.newError("Type Error", text, token.line, token.rowpos);
+                        let type = displayTypesPrimative(value);
+                        let text = `Cannot assign type ${type} to a variable with type ${displayTypes(key.types)} on line ${valueStart.line}`;
+                        throw this.errorhandler.newError("Type Error", text, valueStart.line, valueStart.rowpos);
                     }
                     collection.set(name.stringify(), { constant: false, value, type: key.type, types: key.types });
                 }
-            } else if (this.enclosing && !ancestor) this.enclosing.assign(name, value, tokens);
+            } else if (this.enclosing && !ancestor) this.enclosing.assign(name, value, valueStart);
             else {
                 let text = `Undefined variable '${name.stringify()}' detected on line ${name.line}`;
                 throw this.errorhandler.newError("Variable Error", text, name.line, name.rowpos);
