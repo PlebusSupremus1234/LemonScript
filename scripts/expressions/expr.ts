@@ -14,8 +14,6 @@ export interface Visitor<T> {
     visitSuperExpr: (expr: Super) => T;
     visitUnaryExpr: (expr: Unary) => T;
     visitVariableExpr: (expr: Variable) => T;
-
-    // visitArrayExpr: (expr: LSArray) => T;
 }
 
 let ExprArray = ["Assign", "Binary", "Call", "Get", "Grouping", "Literal", "Logical", "Self", "Set", "Super", "Unary", "Variable"];
@@ -131,12 +129,12 @@ export class Self {
 export class Set {
     obj: Expr;
     name: Token;
-    val: Expr;
+    value: Expr;
 
-    constructor(obj: Expr, name: Token, val: Expr) {
+    constructor(obj: Expr, name: Token, value: Expr) {
         this.obj = obj;
         this.name = name;
-        this.val = val;
+        this.value = value;
     }
 
     accept<T>(visitor: Visitor<T>): T { return visitor.visitSetExpr(this); }

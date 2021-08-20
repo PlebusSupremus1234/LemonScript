@@ -1,6 +1,6 @@
 # [LemonScript](https://plebussupremus1234.github.io/LemonScript/)
 
-A programming language made with TypeScript.
+A static typed, simple and clean programming language inspired by TypeScript and Python. 
 
 Here is a preview of LemonScript:
 ```js
@@ -11,7 +11,7 @@ print(a * 2 + b) # 4
 
 # Functions
 func isPrime(num: Number): Boolean {
-    for (var i = 2; i < num; i = i + 1) {
+    for (var i = 2; i < num; i += 1) {
         if (num % i == 0) return false
     }
     return true
@@ -26,11 +26,12 @@ Links:
 - [LemonScript Documentation](https://plebussupremus1234.github.io/LemonScript/docs/documentation/intro)
 - [More Code Examples](https://plebussupremus1234.github.io/LemonScript/docs/examples/classes/class)
 
-LemonScript is still in heavy development, and a todo list can be found [here](https://github.com/PlebusSupremus1234/LemonScript/projects/1).
+LemonScript is still in heavy development. 
 
 ## Change Log
 Starting from 12/7 because I forgot to do it before
 ```
+19/8: Change file run command
 17/8: Array Types
 14/8: Arrays
 11/8: String indexing and assignment operators

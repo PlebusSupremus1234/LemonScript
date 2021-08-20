@@ -244,9 +244,9 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
             throw this.errorhandler.newError("Type Error", text, expr.name.line, expr.name.rowpos);
         }
 
-        let val = this.evaluate(expr.val);
-        obj.set(expr.name, val);
-        return val;
+        let value = this.evaluate(expr.value);
+        obj.set(expr.name, value);
+        return value;
     }
 
     visitSuperExpr(expr: Super) {

@@ -49,7 +49,7 @@ export class Parser {
 
     varDeclaration(constant: boolean): Var {
         let name = this.advance();
-
+        
         if (name.type !== "IDENTIFIER") {
             let text = `Variable name must be an identifier and cannot be a keyword, number, type or invalid symbol on line ${name.line}`;
             throw this.errorhandler.newError("Variable Error", text, name.line, name.rowpos);
@@ -288,8 +288,9 @@ export class Parser {
             if (expr instanceof Variable) return new Assign(expr.name, value);
             else if (expr instanceof Get) return new Set(expr.obj, expr.name, value);
 
-            this.genSyntaxErr(t, `Invalid assignment target on line`, 0);
+            this.genSyntaxErr(t, `Invalid assignment target`, 0);
         }
+
         return expr;
     }
 
@@ -475,14 +476,11 @@ export class Parser {
 
         let initializer: Stmt | null = null;
         if (this.match("SEMICOLON")) initializer = null;
-        else if (this.match("VAR")) {
-            initializer = this.varDeclaration(false);
-            this.advance();
-        } else if (this.match("CONST")) {
-            initializer = this.varDeclaration(true);
-            this.advance();
-        } else {
-            initializer = this.expressionStatement();
+        else {
+            if (this.match("VAR")) initializer = this.varDeclaration(false);
+            else if (this.match("CONST")) initializer = this.varDeclaration(true);
+            else initializer = this.expressionStatement();
+
             this.advance();
         }
 

@@ -23,7 +23,7 @@ let spacing = " ".repeat(3);
 for (let i in output) output[i] = `${yellow(output[i])}${" ".repeat(maxWidth - output[i].length + 3)}${cyan("|")}`;
 
 output[1] += `${spacing}${bold('Docs:')} https://plebussupremus1234.github.io/LemonScript/`;
-output[3] += `${spacing}${bold('Version:')} 1.6.5`;
+output[3] += `${spacing}${bold('Version:')} 1.7.5`;
 output[5] += `${spacing}${bold('Made by:')} Plebus Supremus`;
 
 console.log("\n" + output.join("\n")); 
@@ -34,9 +34,9 @@ const rl = readline.createInterface({ input: process.stdin, output: process.stdo
 function input() {
     rl.question(cyan("-> "), text => {
         let inp: null | [string, string] = null;
-        if (text.toLowerCase().startsWith("ls run")) {
-            let file = text.slice(6);
-            if (file.length <= 1) console.log(yellow("Please input a text file to run, for example 'ls run index.lemon'"));
+        if (text.toLowerCase().startsWith("lsc run")) {
+            let file = text.slice(8);
+            if (file.length <= 1) console.log(yellow("Please input a text file to run, for example 'lsc run index.lemon'"));
             else {
                 if (!existsSync(file.trim())) console.log(red("I couldn't find that file"));
                 else inp = [file.trim(), readFileSync(file.trim()).toString()];

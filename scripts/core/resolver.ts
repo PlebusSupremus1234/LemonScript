@@ -106,7 +106,7 @@ export class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
     }
 
     visitSetExpr(expr: Set) {
-        this.resolve(expr.val);
+        this.resolve(expr.value);
         this.resolve(expr.obj);
     }
 
