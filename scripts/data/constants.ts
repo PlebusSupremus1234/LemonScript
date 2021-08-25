@@ -12,7 +12,7 @@ const keywords = [
     "CLASS", "EXTENDS", "FUNC",
     "OVERRIDE", "RETURN", "SELF", "SUPER",
     "CONST", "VAR", "IDENTIFIER",
-    "IF", "ELSE", "FOR", "WHILE",
+    "IF", "ELIF", "ELSE", "FOR", "WHILE",
     "IMPORT", "AS"
 ] as const;
 

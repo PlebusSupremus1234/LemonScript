@@ -510,7 +510,9 @@ export class Parser {
 
         let thenBranch: Stmt = this.statement();
         let elseBranch: Stmt | null = null;
-        if (this.match("ELSE")) elseBranch = this.statement();
+
+        if (this.match("ELIF")) elseBranch = this.ifStatement();
+        else if (this.match("ELSE")) elseBranch = this.statement();
 
         return new If(condition, thenBranch, elseBranch);
     }

@@ -31,6 +31,7 @@ LemonScript is still in heavy development.
 ## Change Log
 Starting from 12/7 because I forgot to do it before
 ```
+24/8: Added elif statement
 19/8: Change file run command
 17/8: Array Types
 14/8: Arrays
