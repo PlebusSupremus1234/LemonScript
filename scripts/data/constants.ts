@@ -1,25 +1,44 @@
-const symbols = [
-    "PLUS", "MINUS", "MUL", "DIV", "MOD", "CARET",
-    "PLUSEQUAL", "MINUSEQUAL", "MULEQUAL", "DIVEQUAL", "MODEQUAL", "CARETEQUAL",
-    "LPAREN", "RPAREN", "LBRACE", "RBRACE", "LBRACKET", "RBRACKET",
-    "COLON", "SEMICOLON", "DOT", "COMMA", "PIPE", "EROTEME",
-    "BANG", "BANGEQUAL", "EQUAL", "EQUALEQUAL", "LESS", "LESSEQUAL", "GREATER", "GREATEREQUAL",
-] as const;
-const types = ["NUMBER", "STRING", "BOOLEAN", "NULL", "ARRAY"] as const;
-const other = ["INDENTIFIER", "NATIVEFUNC", "TYPE", "EOF"] as const;
-const keywords = [
-    "AND", "OR",
-    "CLASS", "EXTENDS", "FUNC",
-    "OVERRIDE", "RETURN", "SELF", "SUPER",
-    "CONST", "VAR", "IDENTIFIER",
-    "IF", "ELIF", "ELSE", "FOR", "WHILE",
-    "IMPORT", "AS"
-] as const;
+export enum TokenType {
+    // Keywords
+    AND, OR,
+    CLASS, EXTENDS, FUNC,
+    OVERRIDE, RETURN, SELF, SUPER,
+    CONST, VAR,
+    IF, ELIF, ELSE, FOR, WHILE,
+    IMPORT, AS
+}
 
-const tokentypes = [...symbols, ...types, ...other, ...keywords] as const;
+export let Keywords = Object.keys(TokenType);
 
-export type TokenType = typeof tokentypes[number];
-export let Keywords = keywords;
+export enum TokenType {
+    // Symbols
+    PLUS = 18, MINUS, MUL, DIV, MOD, CARET, // Operators
+    PLUSEQUAL, MINUSEQUAL, MULEQUAL, DIVEQUAL, MODEQUAL, CARETEQUAL, // Assignment Operators
+    LPAREN, RPAREN, LBRACE, RBRACE, LBRACKET, RBRACKET, // Brackets
+    COLON, SEMICOLON, DOT, COMMA, PIPE, EROTEME, // Punctuation
+    BANG, BANGEQUAL, EQUAL, EQUALEQUAL, LESS, LESSEQUAL, GREATER, GREATEREQUAL, // Comparison Operators
+
+    // Types
+    NUMBER, STRING, BOOLEAN, NULL, ARRAY,
+
+    // Other
+    IDENTIFIER, NATIVEFUNC, TYPE, EOF,
+}
 
 export let LSTypesArray = ["Any", "Number", "String", "Boolean", "Null", "Array"] as const;
 export type LSTypes = typeof LSTypesArray[number] | LSTypes[];
+
+export let singleChars: { [key: string]: TokenType } = {
+    "(": TokenType.LPAREN,
+    ")": TokenType.RPAREN,
+    "{": TokenType.LBRACE,
+    "}": TokenType.RBRACE,
+    "[": TokenType.LBRACKET,
+    "]": TokenType.RBRACKET,
+    ":": TokenType.COLON,
+    ";": TokenType.SEMICOLON,
+    ".": TokenType.DOT,
+    ",": TokenType.COMMA,
+    "|": TokenType.PIPE,
+    "?": TokenType.EROTEME,
+};

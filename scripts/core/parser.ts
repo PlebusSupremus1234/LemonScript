@@ -1,5 +1,5 @@
 import { FuncArgs } from "../functions/function"
-import { TokenType, LSTypes } from "../data/constants"
+import { TokenType as T, LSTypes } from "../data/constants"
 import { Token, TokenValue } from "../structures/token"
 import { ErrorHandler } from "../structures/errorhandler"
 
@@ -29,20 +29,20 @@ export class Parser {
 
     // Declarations
     declaration() {
-        if (this.match("CLASS")) return this.classDeclaration();
-        if (this.match("FUNC")) return this.function("function");
-        if (this.match("VAR")) return this.varDeclaration(false);
-        if (this.match("CONST")) return this.varDeclaration(true);
+        if (this.match(T.CLASS)) return this.classDeclaration();
+        if (this.match(T.FUNC)) return this.function("function");
+        if (this.match(T.VAR)) return this.varDeclaration(false);
+        if (this.match(T.CONST)) return this.varDeclaration(true);
         return this.statement();
     }
 
     statement() {
-        if (this.match("IF")) return this.ifStatement();
-        else if (this.match("IMPORT")) return this.importStatement();
-        else if (this.match("RETURN")) return this.returnStatement();
-        else if (this.match("WHILE")) return this.whileStatement();
-        else if (this.match("FOR")) return this.forStatement();
-        else if (this.match("LBRACE")) return new Block(this.block(this.tokens[this.pos - 1]));
+        if (this.match(T.IF)) return this.ifStatement();
+        else if (this.match(T.IMPORT)) return this.importStatement();
+        else if (this.match(T.RETURN)) return this.returnStatement();
+        else if (this.match(T.WHILE)) return this.whileStatement();
+        else if (this.match(T.FOR)) return this.forStatement();
+        else if (this.match(T.LBRACE)) return new Block(this.block(this.tokens[this.pos - 1]));
 
         return this.expressionStatement();
     }
@@ -50,7 +50,7 @@ export class Parser {
     varDeclaration(constant: boolean): Var {
         let name = this.advance();
         
-        if (name.type !== "IDENTIFIER") {
+        if (name.type !== T.IDENTIFIER) {
             let text = `Variable name must be an identifier and cannot be a keyword, number, type or invalid symbol on line ${name.line}`;
             throw this.errorhandler.newError("Variable Error", text, name.line, name.rowpos);
         }
@@ -59,21 +59,21 @@ export class Parser {
         let valueT: Token | null = null;
         let types: LSTypes[] = [];
 
-        if (this.match("EQUAL")) {
+        if (this.match(T.EQUAL)) {
             valueT = this.tokens[this.pos];
             initializer = this.expression();
         } else {
             let token = this.tokens[this.pos];
-            if (this.match("COLON")) {
+            if (this.match(T.COLON)) {
                 while (true) {
                     token = this.tokens[this.pos];
-                    if (this.match("TYPE") && typeof token.value === "string") {
+                    if (this.match(T.TYPE) && typeof token.value === "string") {
                         let type = token.value as LSTypes;
                         if (!types.includes(type)) {
                             let push = type;
                             if (type === "Array") {
-                                if (this.match("LESS")) push = this.getTypes();
-                                if (!this.match("GREATER")) {
+                                if (this.match(T.LESS)) push = this.getTypes();
+                                if (!this.match(T.GREATER)) {
                                     token = this.tokens[this.pos - 1];
                                     if (token) {
                                         let rowpos = token.rowpos + (token.value as string).length;
@@ -85,12 +85,12 @@ export class Parser {
                         }
 
                         token = this.tokens[this.pos];
-                        if (this.match("EQUAL")) {
+                        if (this.match(T.EQUAL)) {
                             valueT = this.tokens[this.pos];
                             initializer = this.expression();
                         }
                         
-                        if (token.type !== "PIPE") break;
+                        if (token.type !== T.PIPE) break;
                         this.advance();
                     } else {
                         let text = `Expected a valid type on line ${token.line}`;
@@ -108,13 +108,13 @@ export class Parser {
 
     classDeclaration() {
         let text = `Expected a class name`;
-        if (!this.check("IDENTIFIER")) throw this.errorhandler.newError("Class Error", text, this.tokens[this.pos].line, this.tokens[this.pos].rowpos);
+        if (!this.check(T.IDENTIFIER)) throw this.errorhandler.newError("Class Error", text, this.tokens[this.pos].line, this.tokens[this.pos].rowpos);
         let name = this.advance();
         
         let superclass: null | Variable = null;
-        if (this.match("EXTENDS")) {
+        if (this.match(T.EXTENDS)) {
             text = `Expected a superclass name`;
-            if (!this.check("IDENTIFIER")) this.genSyntaxErr(this.tokens[this.pos], text, 0);
+            if (!this.check(T.IDENTIFIER)) this.genSyntaxErr(this.tokens[this.pos], text, 0);
             else {
                 superclass = new Variable(this.tokens[this.pos]);
                 this.advance();
@@ -122,14 +122,14 @@ export class Parser {
         }
 
         text = `Expected a '{' after class identifier`;
-        if (!this.check("LBRACE")) this.genSyntaxErr(this.tokens[this.pos], text, 0);
+        if (!this.check(T.LBRACE)) this.genSyntaxErr(this.tokens[this.pos], text, 0);
         this.advance();
 
         let methods = [];
-        while (!this.check("RBRACE") && !this.isAtEnd()) methods.push(this.function("method"));
+        while (!this.check(T.RBRACE) && !this.isAtEnd()) methods.push(this.function("method"));
         
         text = `Expected a '}' after class body`;
-        if (!this.check("RBRACE")) this.genSyntaxErr(this.tokens[this.pos], text, 0);
+        if (!this.check(T.RBRACE)) this.genSyntaxErr(this.tokens[this.pos], text, 0);
         this.advance();
 
         return new Class(name, superclass, methods);
@@ -140,7 +140,7 @@ export class Parser {
         let curr = this.tokens[this.pos];
         let overridden = false;
 
-        if (this.check("OVERRIDE")) {
+        if (this.check(T.OVERRIDE)) {
             if (kind !== "method") {
                 let text = `Expected a function name on line ${curr.line}`;
                 throw this.genFunctionErr(text, curr.line, curr.rowpos);
@@ -150,14 +150,14 @@ export class Parser {
             }
         }
 
-        if (!this.check("IDENTIFIER")) throw this.genFunctionErr(`Expected a ${kind} name on line ${curr.line}`, curr.line, curr.rowpos);
+        if (!this.check(T.IDENTIFIER)) throw this.genFunctionErr(`Expected a ${kind} name on line ${curr.line}`, curr.line, curr.rowpos);
         else name = this.advance();
 
-        if (!this.check("LPAREN")) this.genSyntaxErr(this.tokens[this.pos - 1], `Expected a '(' after ${kind} name`, this.tokens[this.pos - 1].stringify().length);
+        if (!this.check(T.LPAREN)) this.genSyntaxErr(this.tokens[this.pos - 1], `Expected a '(' after ${kind} name`, this.tokens[this.pos - 1].stringify().length);
         else this.advance();
 
         let parameters: FuncArgs[] = [];
-        if (!this.check("RPAREN")) {
+        if (!this.check(T.RPAREN)) {
             let hasOptional = false;
             do {
                 curr = this.tokens[this.pos - 1];
@@ -170,10 +170,10 @@ export class Parser {
                 let optional = false;
                 let types: LSTypes[] = ["Any"];
 
-                if (!this.check("IDENTIFIER")) throw this.genFunctionErr(`Expected a parameter name`, curr.line, curr.rowpos + 1);
+                if (!this.check(T.IDENTIFIER)) throw this.genFunctionErr(`Expected a parameter name`, curr.line, curr.rowpos + 1);
                 else append = this.advance();
 
-                if (this.match("EROTEME")) {
+                if (this.match(T.EROTEME)) {
                     optional = true;
                     hasOptional = true;
                 } else if (hasOptional) {
@@ -182,20 +182,20 @@ export class Parser {
                     throw this.errorhandler.newError("Invalid Function Declaration", text, token.line, token.rowpos);
                 }
 
-                if (this.match("COLON")) types = this.getTypes();
+                if (this.match(T.COLON)) types = this.getTypes();
 
                 if (types.length === 0) types = ["Any"];
                 parameters.push({ name: append, optional, types });
-            } while (this.match("COMMA"));
+            } while (this.match(T.COMMA));
         }
 
-        if (!this.check("RPAREN")) this.genSyntaxErr(this.tokens[this.pos], `Expected a ')' after parameters`, 0);
+        if (!this.check(T.RPAREN)) this.genSyntaxErr(this.tokens[this.pos], `Expected a ')' after parameters`, 0);
         else this.advance();
 
         let returntypes: LSTypes[] = ["Any"];
-        if (this.match("COLON")) returntypes = this.getTypes();
+        if (this.match(T.COLON)) returntypes = this.getTypes();
 
-        if (!this.check("LBRACE")) this.genSyntaxErr(this.tokens[this.pos], `Expected a '{' before ${kind} body`, 0);
+        if (!this.check(T.LBRACE)) this.genSyntaxErr(this.tokens[this.pos], `Expected a '{' before ${kind} body`, 0);
         else this.advance();
 
         let body = this.block(this.tokens[this.pos - 1]);
@@ -203,7 +203,7 @@ export class Parser {
     }
 
     // Functions
-    isAtEnd(): boolean { return this.tokens[this.pos].type === "EOF"; }
+    isAtEnd(): boolean { return this.tokens[this.pos].type === T.EOF; }
 
     genSyntaxErr(token: Token, text: string, offset: number): void {
         throw this.errorhandler.newError("Syntax Error", `${text} on line ${token.line}`, token.line, token.rowpos + offset);
@@ -218,12 +218,12 @@ export class Parser {
         return this.tokens[this.pos - 1];
     }
 
-    check(type: TokenType): boolean {
+    check(type: T): boolean {
         if (this.isAtEnd()) return false;
         return this.tokens[this.pos].type === type;
     }
 
-    match(...types: TokenType[]): boolean {
+    match(...types: T[]): boolean {
         for (let i of types) {
             if (this.check(i)) {
                 this.advance();
@@ -239,13 +239,13 @@ export class Parser {
         let token = this.tokens[this.pos];
         while (true) {
             token = this.tokens[this.pos];
-             if (this.match("TYPE") && typeof token.value === "string") {
+             if (this.match(T.TYPE) && typeof token.value === "string") {
                 let type = token.value as LSTypes;
                 if (!types.includes(type)) {
                     let push = type;
                     if (type === "Array") {
-                        if (this.match("LESS")) push = this.getTypes();
-                            if (!this.match("GREATER")) {
+                        if (this.match(T.LESS)) push = this.getTypes();
+                            if (!this.match(T.GREATER)) {
                             token = this.tokens[this.pos - 1];
                             if (token) {
                                 let rowpos = token.rowpos + (token.value as string).length;
@@ -256,7 +256,7 @@ export class Parser {
                     types.push(push);
                 }
                 
-                if (this.tokens[this.pos].type !== "PIPE") break;
+                if (this.tokens[this.pos].type !== T.PIPE) break;
                 this.advance();
             } else {
                 let text = `Expected a valid type on line ${token.line}`;
@@ -276,12 +276,14 @@ export class Parser {
         let t = this.tokens[this.pos];
         let expr = this.or();
 
-        if (this.match("EQUAL", "PLUSEQUAL", "MINUSEQUAL", "MULEQUAL", "DIVEQUAL", "MODEQUAL", "CARETEQUAL")) {
+        if (this.match(T.EQUAL, T.PLUSEQUAL, T.MINUSEQUAL, T.MULEQUAL, T.DIVEQUAL, T.MODEQUAL, T.CARETEQUAL)) {
             let token = this.tokens[this.pos - 1];
             let value = this.assignment();
 
-            if (token.type !== "EQUAL" && token.value) {
-                let newToken = new Token(token.type.substring(0, token.type.length - 5) as TokenType, (token.value as string)[0], token.line, token.rowpos);
+            if (token.type !== T.EQUAL && token.value) {
+                let type = T[token.type];
+                let key = type.substring(0, type.length - 5) as keyof typeof T;
+                let newToken = new Token(T[key], (token.value as string)[0], token.line, token.rowpos);
                 value = new Binary(expr, newToken, value);
             }
 
@@ -297,7 +299,7 @@ export class Parser {
     or() {
         let expr = this.and();
 
-        while (this.match("OR")) {
+        while (this.match(T.OR)) {
             let operator = this.tokens[this.pos - 1];
             let right = this.and();
             expr = new Logical(expr, operator, right);
@@ -309,7 +311,7 @@ export class Parser {
     and() {
         let expr = this.equality();
 
-        while (this.match("AND")) {
+        while (this.match(T.AND)) {
             let operator = this.tokens[this.pos - 1];
             let right = this.equality();
             expr = new Logical(expr, operator, right);
@@ -321,7 +323,7 @@ export class Parser {
     equality(): Expr {
         let expr = this.comparison();
 
-        while (this.match("BANGEQUAL", "EQUALEQUAL")) {
+        while (this.match(T.BANGEQUAL, T.EQUALEQUAL)) {
             let operator = this.tokens[this.pos - 1];
             let right = this.comparison();
             expr = new Binary(expr, operator, right);
@@ -332,7 +334,7 @@ export class Parser {
     comparison(): Expr {
         let expr = this.term();
 
-        while (this.match("GREATER", "GREATEREQUAL", "LESS", "LESSEQUAL")) {
+        while (this.match(T.GREATER, T.GREATEREQUAL, T.LESS, T.LESSEQUAL)) {
             let operator = this.tokens[this.pos - 1];
             let right = this.term();
             expr = new Binary(expr, operator, right);
@@ -343,7 +345,7 @@ export class Parser {
     term(): Expr {
         let expr = this.factor();
 
-        while (this.match("MINUS", "PLUS")) {
+        while (this.match(T.MINUS, T.PLUS)) {
             let operator = this.tokens[this.pos - 1];
             let right = this.factor();
             expr = new Binary(expr, operator, right);
@@ -354,7 +356,7 @@ export class Parser {
     factor(): Expr {
         let expr = this.mod();
 
-        while (this.match("DIV", "MUL")) {
+        while (this.match(T.DIV, T.MUL)) {
             let operator = this.tokens[this.pos - 1];
             let right = this.mod();
             expr = new Binary(expr, operator, right);
@@ -365,7 +367,7 @@ export class Parser {
     mod(): Expr {
         let expr = this.power();
 
-        while (this.match("MOD")) {
+        while (this.match(T.MOD)) {
             let operator = this.tokens[this.pos - 1];
             let right = this.power();
             expr = new Binary(expr, operator, right);
@@ -376,7 +378,7 @@ export class Parser {
     power(): Expr {
         let expr = this.unary();
 
-        while (this.match("CARET")) {
+        while (this.match(T.CARET)) {
             let operator = this.tokens[this.pos - 1];
             let right = this.unary();
             expr = new Binary(expr, operator, right);
@@ -385,7 +387,7 @@ export class Parser {
     }
 
     unary(): Expr {
-        if (this.match("BANG", "MINUS")) {
+        if (this.match(T.BANG, T.MINUS)) {
             let operator = this.tokens[this.pos - 1];
             let right = this.unary();
             return new Unary(operator, right);
@@ -396,9 +398,9 @@ export class Parser {
     call() {
         let expr: Expr = this.primary();
         while (true) {
-            if (this.match("LPAREN")) expr = this.finishCall(expr);
-            else if (this.match("DOT")) {
-                if (!this.check("IDENTIFIER")) throw this.genSyntaxErr(this.tokens[this.pos], `Expected a property name after '.'`, 0);
+            if (this.match(T.LPAREN)) expr = this.finishCall(expr);
+            else if (this.match(T.DOT)) {
+                if (!this.check(T.IDENTIFIER)) throw this.genSyntaxErr(this.tokens[this.pos], `Expected a property name after '.'`, 0);
                 else {
                     let name = this.advance();
                     expr = new Get(expr, name);
@@ -409,51 +411,51 @@ export class Parser {
     }
 
     primary(): Expr {
-        if (this.match("STRING", "NUMBER", "BOOLEAN", "NULL")) {
+        if (this.match(T.STRING, T.NUMBER, T.BOOLEAN, T.NULL)) {
             let token = this.tokens[this.pos - 1];
             let value: TokenValue;
 
-            if (token.type === "NUMBER" || token.type === "STRING") value = token.value;
-            else if (token.type === "BOOLEAN") value = token.value === "true";
+            if (token.type === T.NUMBER || token.type === T.STRING  ) value = token.value;
+            else if (token.type === T.BOOLEAN) value = token.value === "true";
             else value = null;
 
             return new Literal(token.type, value, token.line, token.rowpos);
         }
 
-        if (this.match("SUPER")) {
+        if (this.match(T.SUPER)) {
             let keyword = this.tokens[this.pos - 1];
 
-            if (!this.check("DOT")) this.genSyntaxErr(this.tokens[this.pos - 1], `Expected a '.' after super`, 5);
+            if (!this.check(T.DOT)) this.genSyntaxErr(this.tokens[this.pos - 1], `Expected a '.' after super`, 5);
             this.advance();
 
             let text = `Expected a superclass method name on line ${this.tokens[this.pos].line}`;
-            if (!this.check("IDENTIFIER")) throw this.errorhandler.newError("Class Error", text, this.tokens[this.pos].line, this.tokens[this.pos].rowpos);
+            if (!this.check(T.IDENTIFIER)) throw this.errorhandler.newError("Class Error", text, this.tokens[this.pos].line, this.tokens[this.pos].rowpos);
             let method = this.advance();
 
             return new Super(keyword, method);
         }
 
-        if (this.match("LBRACKET")) {
+        if (this.match(T.LBRACKET)) {
             let args: Expr[] = [];
-            if (!this.check("RBRACKET")) {
+            if (!this.check(T.RBRACKET)) {
                 do args.push(this.expression());
-                while (this.match("COMMA"));
+                while (this.match(T.COMMA));
             }
 
             let paren: Token;
-            if (!this.check("RBRACKET")) throw this.genSyntaxErr(this.tokens[this.pos], `Expected a ']' after array`, 0);
+            if (!this.check(T.RBRACKET)) throw this.genSyntaxErr(this.tokens[this.pos], `Expected a ']' after array`, 0);
             else paren = this.advance();
 
             return args;
         }
 
-        if (this.match("SELF")) return new Self(this.tokens[this.pos - 1]);
-        if (this.match("IDENTIFIER")) return new Variable(this.tokens[this.pos - 1]);
+        if (this.match(T.SELF)) return new Self(this.tokens[this.pos - 1]);
+        if (this.match(T.IDENTIFIER)) return new Variable(this.tokens[this.pos - 1]);
 
         let lparenpos = this.pos;
-        if (this.match("LPAREN")) {
+        if (this.match(T.LPAREN)) {
             let expr = this.expression();
-            if (this.check("RPAREN")) {
+            if (this.check(T.RPAREN)) {
                 this.advance();
                 return new Grouping(expr);
             } else this.genSyntaxErr(this.tokens[lparenpos], `Expected a ')' after expression`, 0);
@@ -471,33 +473,33 @@ export class Parser {
     }
 
     forStatement(): Stmt {
-        if (!this.check("LPAREN")) this.genSyntaxErr(this.tokens[this.pos - 1], `Expected a '(' after 'for' statement`, 3);
+        if (!this.check(T.LPAREN)) this.genSyntaxErr(this.tokens[this.pos - 1], `Expected a '(' after 'for' statement`, 3);
         this.advance();
 
         let initializer: Stmt | null = null;
-        if (this.match("SEMICOLON")) initializer = null;
+        if (this.match(T.SEMICOLON)) initializer = null;
         else {
-            if (this.match("VAR")) initializer = this.varDeclaration(false);
-            else if (this.match("CONST")) initializer = this.varDeclaration(true);
+            if (this.match(T.VAR)) initializer = this.varDeclaration(false);
+            else if (this.match(T.CONST)) initializer = this.varDeclaration(true);
             else initializer = this.expressionStatement();
 
             this.advance();
         }
 
         let condition: Expr | null = null;
-        if (!this.check("SEMICOLON")) condition = this.expression();
-        if (!this.check("SEMICOLON")) this.genSyntaxErr(this.tokens[this.pos - 1], `Expected a ';' after 'for' condition`, 3);
+        if (!this.check(T.SEMICOLON)) condition = this.expression();
+        if (!this.check(T.SEMICOLON)) this.genSyntaxErr(this.tokens[this.pos - 1], `Expected a ';' after 'for' condition`, 3);
         else this.advance();
 
         let increment: Expr | null = null;
-        if (!this.check("RPAREN")) increment = this.expression();
-        if (!this.check("RPAREN")) this.genSyntaxErr(this.tokens[this.pos - 1], `Expected a ')' after 'for' clauses`, 3);
+        if (!this.check(T.RPAREN)) increment = this.expression();
+        if (!this.check(T.RPAREN)) this.genSyntaxErr(this.tokens[this.pos - 1], `Expected a ')' after 'for' clauses`, 3);
         else this.advance();
 
         let body: Stmt = this.statement();
         if (increment !== null) body = new Block([body, new Expression(increment)]);
 
-        if (condition === null) condition = new Literal("BOOLEAN", true, 0, 0);
+        if (condition === null) condition = new Literal(T.BOOLEAN, true, 0, 0);
         body = new While(condition, body);
         if (initializer !== null) body = new Block([initializer, body]);
 
@@ -505,14 +507,14 @@ export class Parser {
     }
 
     ifStatement(): If {
-        if (!this.check("LPAREN")) this.genSyntaxErr(this.tokens[this.pos - 1], `Expected a '(' after 'if' statement`, 2);
+        if (!this.check(T.LPAREN)) this.genSyntaxErr(this.tokens[this.pos - 1], `Expected a '(' after 'if' statement`, 2);
         let condition = this.expression();
 
         let thenBranch: Stmt = this.statement();
         let elseBranch: Stmt | null = null;
 
-        if (this.match("ELIF")) elseBranch = this.ifStatement();
-        else if (this.match("ELSE")) elseBranch = this.statement();
+        if (this.match(T.ELIF)) elseBranch = this.ifStatement();
+        else if (this.match(T.ELSE)) elseBranch = this.statement();
 
         return new If(condition, thenBranch, elseBranch);
     }
@@ -520,15 +522,15 @@ export class Parser {
     importStatement(): Import {
         let token = this.tokens[this.pos];
         let text = `Expected a valid import name on line ${token.line}`;
-        if (!this.check("IDENTIFIER")) throw this.errorhandler.newError("Syntax Error", text, token.line, token.rowpos);
+        if (!this.check(T.IDENTIFIER)) throw this.errorhandler.newError("Syntax Error", text, token.line, token.rowpos);
 
         let name = this.advance();
         let variablename: null | Token = null;
 
-        if (this.match("AS")) {
+        if (this.match(T.AS)) {
             token = this.tokens[this.pos];
             text = `Expected a valid variable name on line ${token.line}`;
-            if (!this.check("IDENTIFIER")) throw this.errorhandler.newError("Syntax Error", text, token.line, token.rowpos);
+            if (!this.check(T.IDENTIFIER)) throw this.errorhandler.newError("Syntax Error", text, token.line, token.rowpos);
             variablename = this.advance();
         }
 
@@ -544,7 +546,7 @@ export class Parser {
     }
 
     whileStatement(): While {
-        if (!this.check("LPAREN")) this.genSyntaxErr(this.tokens[this.pos - 1], `Expected a '(' after 'while' statement`, 5);
+        if (!this.check(T.LPAREN)) this.genSyntaxErr(this.tokens[this.pos - 1], `Expected a '(' after 'while' statement`, 5);
 
         let condition = this.expression();
         let body: Stmt = this.statement();
@@ -555,9 +557,9 @@ export class Parser {
     // Other
     block(lbrace: Token): Stmt[] {
         let statements: Stmt[] = [];
-        while (!this.check("RBRACE") && !this.isAtEnd()) statements.push(this.declaration());
+        while (!this.check(T.RBRACE) && !this.isAtEnd()) statements.push(this.declaration());
 
-        if (!this.check("RBRACE")) throw this.genSyntaxErr(lbrace, `Expected a closing '}' after scope`, 0);
+        if (!this.check(T.RBRACE)) throw this.genSyntaxErr(lbrace, `Expected a closing '}' after scope`, 0);
         else {
             this.advance();
             return statements;
@@ -566,18 +568,18 @@ export class Parser {
 
     finishCall(callee: Expr) {
         let args: Expr[] = [];
-        if (!this.check("RPAREN")) {
+        if (!this.check(T.RPAREN)) {
             do {
                 if (args.length >= 255) {
                     let current = this.tokens[this.pos];
                     this.genFunctionErr(`Function call cannot have more than 255 arguments`, current.line, current.rowpos, true);
                 }
                 args.push(this.expression());
-            } while (this.match("COMMA"));
+            } while (this.match(T.COMMA));
         }
 
         let paren: Token;
-        if (!this.check("RPAREN")) throw this.genSyntaxErr(this.tokens[this.pos], `Expected a ')' after function arguments`, 0);
+        if (!this.check(T.RPAREN)) throw this.genSyntaxErr(this.tokens[this.pos], `Expected a ')' after function arguments`, 0);
         else paren = this.advance();
 
         return new Call(callee, paren, args);

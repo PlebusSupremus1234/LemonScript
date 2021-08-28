@@ -23,7 +23,7 @@ let spacing = " ".repeat(3);
 for (let i in output) output[i] = `${yellow(output[i])}${" ".repeat(maxWidth - output[i].length + 3)}${cyan("|")}`;
 
 output[1] += `${spacing}${bold('Docs:')} https://plebussupremus1234.github.io/LemonScript/`;
-output[3] += `${spacing}${bold('Version:')} 1.7.5`;
+output[3] += `${spacing}${bold('Version:')} 1.9.0`;
 output[5] += `${spacing}${bold('Made by:')} Plebus Supremus`;
 
 console.log("\n" + output.join("\n")); 

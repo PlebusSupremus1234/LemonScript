@@ -7,7 +7,7 @@ import { Token, TokenValue } from "../structures/token"
 import { Environment } from "../structures/environment"
 import { ErrorHandler } from "../structures/errorhandler"
 
-import { LSTypes } from "../data/constants"
+import { TokenType as T, LSTypes } from "../data/constants"
 import { displayTypesPrimative, checkType, checkArgType } from "../data/types"
 
 export type FuncArgs = {
@@ -31,7 +31,7 @@ export class Function implements Callable {
 
     bind(token: Token, instance: Instance, errorhandler: ErrorHandler) {
         let environment = new Environment(this.closure, errorhandler);
-        environment.define(new Token("SELF", "self", token.line, token.rowpos), false, instance, "VAR", ["Any"]);
+        environment.define(new Token(T.SELF, "self", token.line, token.rowpos), false, instance, "VAR", ["Any"]);
         return new Function(this.declaration, environment, this.isInit, this.returntypes);
     }
 

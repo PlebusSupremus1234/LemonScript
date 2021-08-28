@@ -1,6 +1,6 @@
 import { Token, TokenValue } from "../structures/token"
 import { ErrorHandler } from "../structures/errorhandler"
-import { Keywords, TokenType, LSTypesArray } from "../data/constants"
+import { Keywords, TokenType as T, LSTypesArray, singleChars } from "../data/constants"
 
 export class Lexer {
     fname: string;
@@ -26,7 +26,8 @@ export class Lexer {
             try { this.genToken(); }
             catch(e) { return console.log(this.errorhandler.stringify(e)); }
         }
-        this.addToken("EOF", null);
+
+        this.addToken(T.EOF, null);
         return this.tokens;
     }
 
@@ -40,12 +41,12 @@ export class Lexer {
         return text.match(/^[A-Za-z]+$/) !== null;
     }
     
-    addToken(type: TokenType, value: TokenValue=this.currentChar, rowpos: number=this.rowpos, line: number=this.line) {
+    addToken(type: T, value: TokenValue=this.currentChar, rowpos: number=this.rowpos, line: number=this.line) {
         this.tokens.push(new Token(type, value, line, rowpos));
         this.advance();
     }
 
-    twoChars(c1name: TokenType, c1: string, c2name: TokenType, c2: string, diff: string = "=") {
+    twoChars(c1name: T, c1: string, c2name: T, c2: string, diff: string = "=") {
         if (this.next(diff)) this.addToken(c2name, c2, this.rowpos - 1);
         else this.addToken(c1name, c1, this.rowpos);
     }
@@ -69,79 +70,73 @@ export class Lexer {
 
     // Main
     genToken() {
-        switch (this.currentChar) {
-            case "+": this.twoChars("PLUS", "+", "PLUSEQUAL", "+="); break;
-            case "-": this.twoChars("MINUS", "-", "MINUSEQUAL", "-="); break;
-            case "*": this.twoChars("MUL", "*", "MULEQUAL", "*="); break;
-            case "/": this.twoChars("DIV", "/", "DIVEQUAL", "/="); break;
-            case "%": this.twoChars("MOD", "%", "MODEQUAL", "%="); break;
-            case "^": this.twoChars("CARET", "^", "CARETEQUAL", "^="); break;
-            case "(": this.addToken("LPAREN"); break;
-            case ")": this.addToken("RPAREN"); break;
-            case "{": this.addToken("LBRACE"); break;
-            case "}": this.addToken("RBRACE"); break;
-            case "[": this.addToken("LBRACKET"); break;
-            case "]": this.addToken("RBRACKET"); break;
-            case ":": this.addToken("COLON"); break;
-            case ";": this.addToken("SEMICOLON"); break;
-            case ".": this.addToken("DOT"); break;
-            case ",": this.addToken("COMMA"); break;
-            case "|": this.addToken("PIPE"); break;
-            case "?": this.addToken("EROTEME"); break;
-            case "!": this.twoChars("BANG", "!", "BANGEQUAL", "!="); break;
-            case "=": this.twoChars("EQUAL", "=", "EQUALEQUAL", "=="); break;
-            case "<": this.twoChars("LESS", "<", "LESSEQUAL", "<="); break;
-            case ">": this.twoChars("GREATER", ">", "GREATEREQUAL", ">="); break;
-            case "#": // Comment Line
-                while (this.peek() !== "\n" && !this.isAtEnd()) this.advance();
-                this.advance();
-                break;
-            case " ":
-            case "\t":
-            case "\r":
-                this.advance();
-                break;
-            case '"': // String
-            case "'":
-                let ending = this.currentChar;
-                let start = this.pos + 1;
-                let rowstart = this.rowpos;
-                let linestart = this.line;
-
-                while (this.peek() !== ending && !this.isAtEnd()) this.advance();
-                if (this.pos >= this.ftext.length || this.line !== linestart) this.genError(`String on line ${linestart} has no ending`, rowstart, linestart);
-
-                this.advance();
-                this.addToken("STRING", this.ftext.substring(start, this.pos), rowstart, linestart);
-                break;
-            default: // Other
-                if (this.isAlpha(this.currentChar) || this.currentChar === "_") { // Identifier / Keyword
-                    let start = this.pos;
+        let code = singleChars[this.currentChar];
+        if (code) this.addToken(code);
+        else {
+            switch (this.currentChar) {
+                case "+": this.twoChars(T.PLUS, "+", T.PLUSEQUAL, "+="); break;
+                case "-": this.twoChars(T.MINUS, "-", T.MINUSEQUAL, "-="); break;
+                case "*": this.twoChars(T.MUL, "*", T.MULEQUAL, "*="); break;
+                case "/": this.twoChars(T.DIV, "/", T.DIVEQUAL, "/="); break;
+                case "%": this.twoChars(T.MOD, "%", T.MODEQUAL, "%="); break;
+                case "^": this.twoChars(T.CARET, "^", T.CARETEQUAL, "^="); break;
+                case "!": this.twoChars(T.BANG, "!", T.BANGEQUAL, "!="); break;
+                case "=": this.twoChars(T.EQUAL, "=", T.EQUALEQUAL, "=="); break;
+                case "<": this.twoChars(T.LESS, "<", T.LESSEQUAL, "<="); break;
+                case ">": this.twoChars(T.GREATER, ">", T.GREATEREQUAL, ">="); break;
+                case "#": // Comment Line
+                    while (this.peek() !== "\n" && !this.isAtEnd()) this.advance();
+                    this.advance();
+                    break;
+                case " ":
+                case "\t":
+                case "\r":
+                    this.advance();
+                    break;
+                case '"': // String
+                case "'":
+                    let ending = this.currentChar;
+                    let start = this.pos + 1;
                     let rowstart = this.rowpos;
-                    while (this.isAlpha(this.peek()) || "0123456789".includes(this.peek())) this.advance();
-                    let text = this.ftext.substring(start, this.pos + 1);
+                    let linestart = this.line;
 
-                    if (LSTypesArray.includes(text as any)) this.addToken("TYPE", text, rowstart);
-                    else if (["true", "false"].includes(text)) this.addToken("BOOLEAN", text, rowstart);
-                    else if (text === "null") this.addToken("NULL", text, rowstart);
-                    else if (Keywords.map(i => i.toLowerCase()).includes(text)) this.addToken(text.toUpperCase() as TokenType, text, rowstart);
-                    else this.addToken("IDENTIFIER", text, rowstart);
-                } else if ("0123456789".includes(this.currentChar)) { // Number
-                    let start = this.pos;
-                    let rowstart = this.rowpos;
+                    while (this.peek() !== ending && !this.isAtEnd()) this.advance();
+                    if (this.pos >= this.ftext.length || this.line !== linestart) this.genError(`String on line ${linestart} has no ending`, rowstart, linestart);
 
-                    while ("0123456789".includes(this.peek())) this.advance();                
-                    if (this.peek() === ".") {
-                        this.advance();
-                        if ("0123456789".includes(this.ftext[this.pos + 1])) {
-                            while ("0123456789".includes(this.peek())) this.advance();
-                        } else {
-                            if (this.peek()) this.advance();
-                            this.genError(`Unexpected token '${this.currentChar}' detected on line ${this.line}`, this.rowpos);
+                    this.advance();
+                    this.addToken(T.STRING, this.ftext.substring(start, this.pos), rowstart, linestart);
+                    break;
+                default: // Other
+                    if (this.isAlpha(this.currentChar) || this.currentChar === "_") { // Identifier / Keyword
+                        let start = this.pos;
+                        let rowstart = this.rowpos;
+                        while (this.isAlpha(this.peek()) || "0123456789".includes(this.peek())) this.advance();
+                        let text = this.ftext.substring(start, this.pos + 1);
+
+                        if (LSTypesArray.includes(text as any)) this.addToken(T.TYPE, text, rowstart);
+                        else if (["true", "false"].includes(text)) this.addToken(T.BOOLEAN, text, rowstart);
+                        else if (text === "null") this.addToken(T.NULL, text, rowstart);
+                        else if (Keywords.map(i => i.toLowerCase()).includes(text)) {
+                            let key = text.toUpperCase() as keyof typeof T;
+                            this.addToken(T[key], text, rowstart);
+                        } else this.addToken(T.IDENTIFIER, text, rowstart);
+                    } else if ("0123456789".includes(this.currentChar)) { // Number
+                        let start = this.pos;
+                        let rowstart = this.rowpos;
+
+                        while ("0123456789".includes(this.peek())) this.advance();                
+                        if (this.peek() === ".") {
+                            this.advance();
+                            if ("0123456789".includes(this.ftext[this.pos + 1])) {
+                                while ("0123456789".includes(this.peek())) this.advance();
+                            } else {
+                                if (this.peek()) this.advance();
+                                this.genError(`Unexpected token '${this.currentChar}' detected on line ${this.line}`, this.rowpos);
+                            }
                         }
-                    }
-                    this.addToken("NUMBER", parseFloat(this.ftext.substring(start, this.pos + 1)), rowstart);
-                } else this.genError(`Illegal Character '${this.currentChar}' detected on line ${this.line}`, this.rowpos);
+                        this.addToken(T.NUMBER, parseFloat(this.ftext.substring(start, this.pos + 1)), rowstart);
+                    } else this.genError(`Illegal Character '${this.currentChar}' detected on line ${this.line}`, this.rowpos);
+            }
         }
     }
 }

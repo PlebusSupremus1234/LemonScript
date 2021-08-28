@@ -3,7 +3,7 @@ import { VarKey, Environment } from "../structures/environment"
 import { Token, TokenValue } from "../structures/token"
 import { ErrorHandler, ErrorHeader } from "../structures/errorhandler"
 
-import { LSTypes } from "../data/constants"
+import { TokenType as T, LSTypes } from "../data/constants"
 import { isTruthy, isCallable, accept, isEqual } from "../data/helper"
 import { Method, displayTypes, displayTypesPrimative, checkType, checkArgType } from "../data/types"
 
@@ -35,7 +35,7 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
         this.globals = new Environment(null, errorhandler);
         this.environment = this.globals;
 
-        for (let i of Funcs) this.globals.define(new Token("NATIVEFUNC", i.name, 0, 0), true, i.func, "FUNCTION", ["Any"]);
+        for (let i of Funcs) this.globals.define(new Token(T.NATIVEFUNC, i.name, 0, 0), true, i.func, "FUNCTION", ["Any"]);
     }
 
     interpret(statements: Stmt[]) {
@@ -78,15 +78,15 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
         let o = expr.operator;
 
         switch (o.type) {
-            case "PLUS":
+            case T.PLUS:
                 if (Array.isArray(l)) return [...l, r];
                 if (typeof l === "number" && typeof r === "number") return l + r;
                 if ((typeof l === "number" || typeof l === "string") && (typeof r === "number" || typeof r === "string")) return String(l) + String(r);
                 this.binaryErr("add", "to", l, r, o);
-            case "MINUS":
+            case T.MINUS:
                 if (typeof l === "number" && typeof r === "number") return l - r;
                 this.binaryErr("subtract", "from", l, r, o);
-            case "MUL":
+            case T.MUL:
                 if (typeof l === "number" && typeof r === "number") return l * r;
                 if (typeof l === "string" && typeof r === "number") {
                     if (r % 1 !== 0) {
@@ -96,7 +96,7 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
                     }
                     else return Array(r).fill(l).join("");
                 } else this.binaryErr("multiply", "to", l, r, o);
-            case "DIV":
+            case T.DIV:
                 if (typeof l === "number" && typeof r === "number") {
                     if (r === 0) {
                         let text = `Cannot divide a number by 0 on line ${o.line}`;
@@ -106,10 +106,10 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
                     return l / r;
                 }
                 this.binaryErr("divide", "from", l, r, o);
-            case "MOD":
+            case T.MOD:
                 if (typeof l === "number" && typeof r === "number") return l % r;
                 this.binaryErr("modulate", "from", l, r, o);
-            case "CARET":
+            case T.CARET:
                 if (typeof l === "number" && typeof r === "number") {
                     if (l < 0 && r < 1 && r > 0) {
                         let text = `Cannot take root of a negative number on line ${o.line}`;
@@ -119,20 +119,20 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
                     return l ** r;
                 }
                 this.binaryErr("exponentialize", "from", l, r, o);
-            case "GREATER":
+            case T.GREATER:
                 if (typeof l === "number" && typeof r === "number") return l > r;
                 this.binaryErr("compare", "with", r, l, o);
-            case "GREATEREQUAL":
+            case T.GREATEREQUAL:
                 if (typeof l === "number" && typeof r === "number") return l >= r;
                 this.binaryErr("compare", "with", r, l, o);
-            case "LESS":
+            case T.LESS:
                 if (typeof l === "number" && typeof r === "number") return l < r;
                 this.binaryErr("compare", "with", r, l, o);
-            case "LESSEQUAL":
+            case T.LESSEQUAL:
                 if (typeof l === "number" && typeof r === "number") return l <= r;
                 this.binaryErr("compare", "with", r, l, o);
-            case "BANGEQUAL": return !isEqual(l, r);
-            case "EQUALEQUAL": return isEqual(l, r);
+            case T.BANGEQUAL: return !isEqual(l, r);
+            case T.EQUALEQUAL: return isEqual(l, r);
         }
         
         return null;
@@ -163,7 +163,7 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
         for (let arg of expr.args) {
             args.push({ token: this.tokens[idx], value: this.evaluate(arg) });
 
-            while (this.tokens[idx] && this.tokens[idx].type !== "COMMA") idx++;
+            while (this.tokens[idx] && this.tokens[idx].type !== T.COMMA) idx++;
             idx++;
         }
 
@@ -225,7 +225,7 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
     visitLogicalExpr(expr: Logical) {
         let left = this.evaluate(expr.left);
 
-        if (expr.operator.type === "OR") {
+        if (expr.operator.type === T.OR) {
             if (isTruthy(left)) return left;
         } else {
             if (!isTruthy(left)) return left;
@@ -280,8 +280,8 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
         let rightRaw = this.evaluate(expr.right);
         let right = rightRaw !== null ? rightRaw.toString() : "null";
 
-        if (expr.operator.type === "BANG") return !isTruthy(rightRaw);
-        if (expr.operator.type === "MINUS") return -(parseFloat(right));
+        if (expr.operator.type === T.BANG) return !isTruthy(rightRaw);
+        if (expr.operator.type === T.MINUS) return -(parseFloat(right));
 
         return null;
     }
@@ -309,7 +309,7 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
             let s = <Token>stmt.superclass.name;
             let index = this.tokens.findIndex(i => i.line === s.line && i.rowpos === s.rowpos);
             let token = this.tokens[index + 2];
-            this.environment.define(new Token("SUPER", "super", token.line, token.rowpos), true, superclass, "VAR", ["Any"]);
+            this.environment.define(new Token(T.SUPER, "super", token.line, token.rowpos), true, superclass, "VAR", ["Any"]);
         }
 
         let methods: Map<string, Function> = new Map();
@@ -348,7 +348,7 @@ export class Interpreter implements ExprVisitor<TokenValue>, StmtVisitor<void> {
             throw this.errorhandler.newError("Import Error", text, stmt.module.line, stmt.module.rowpos);
         }
 
-        let key = this.environment.get(new Token("IDENTIFIER", stmt.module.stringify(), 0, 0), false);
+        let key = this.environment.get(new Token(T.IDENTIFIER, stmt.module.stringify(), 0, 0), false);
         if (key && stmt.name.stringify() === stmt.module.stringify()) {
             let text = `Variable with the name '${stmt.module.stringify()}' already exists when importing module on line ${stmt.module.line}`;
             this.errorhandler.newError("Import Error", text, stmt.module.line, stmt.module.rowpos);
