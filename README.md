@@ -26,8 +26,6 @@ Links:
 - [LemonScript Documentation](https://plebussupremus1234.github.io/LemonScript/docs/documentation/intro)
 - [More Code Examples](https://plebussupremus1234.github.io/LemonScript/docs/examples/classes/class)
 
-LemonScript is still in heavy development. 
-
 ## Change Log
 Starting from 12/7 because I forgot to do it before
 ```
