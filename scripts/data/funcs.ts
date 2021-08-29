@@ -38,6 +38,9 @@ export let Funcs: ModuleObj[] = [
         func: {
             arity() { return [1, 1]; },
             call(interpreter: Interpreter, token: Token, args: { token: Token, value: TokenValue }[]) {
+                let value = args[0].value;
+                if (isCallable(value)) return value.stringify();
+
                 return capitilizeFirstLetter(getType(args[0].value));
             },
             stringify() { return "<nativefunc typeof>"; }
