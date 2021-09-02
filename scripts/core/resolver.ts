@@ -31,7 +31,7 @@ export class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
         for (let s of args) {
             try { accept(s, this as any); }
             catch (e) {
-                console.log(e.stringify());
+                console.log(this.errorhandler.stringify(e));
                 return true;
             }
         }

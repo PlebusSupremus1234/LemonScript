@@ -29,6 +29,7 @@ Links:
 ## Change Log
 Starting from 12/7 because I forgot to do it before
 ```
+02/9: Added integration tests
 29/8: Fixed typeof function
 27/8: Used enums instead of strings for types
 24/8: Added elif statement

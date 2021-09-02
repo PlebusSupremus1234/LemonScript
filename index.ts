@@ -33,17 +33,27 @@ const rl = readline.createInterface({ input: process.stdin, output: process.stdo
 
 function input() {
     rl.question(cyan("-> "), text => {
-        let inp: null | [string, string] = null;
+        let inputFile = "<stdin>";
+        let inputText = "";
+        let errored = true;
+
         if (text.toLowerCase().startsWith("lsc run")) {
             let file = text.slice(8);
             if (file.length <= 1) console.log(yellow("Please input a text file to run, for example 'lsc run index.lemon'"));
             else {
                 if (!existsSync(file.trim())) console.log(red("I couldn't find that file"));
-                else inp = [file.trim(), readFileSync(file.trim()).toString()];
+                else {
+                    inputFile = file.trim();
+                    inputText = readFileSync(file.trim()).toString();
+                    errored = false;
+                }
             }
-        } else inp = ["<stdin>", text];
+        } else {
+            inputText = text;
+            errored = false;
+        }
 
-        if (inp) run(inp[0], inp[1]);
+        if (!errored) run(inputFile, inputText);
 
         input();
     });
