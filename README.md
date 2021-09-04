@@ -1,6 +1,6 @@
 # [LemonScript](https://plebussupremus1234.github.io/LemonScript/)
 
-A static & dynamic typed, simple and clean programming language inspired by TypeScript and Python. 
+A statically & dynamically typed programming language inspired by TypeScript and Python. 
 
 Here is a preview of LemonScript:
 ```js
@@ -25,6 +25,9 @@ Links:
 - [LemonScript Installation](https://plebussupremus1234.github.io/LemonScript/docs/setup/intro)
 - [LemonScript Documentation](https://plebussupremus1234.github.io/LemonScript/docs/documentation/intro)
 - [More Code Examples](https://plebussupremus1234.github.io/LemonScript/docs/examples/classes/class)
+
+## Credits
+Huge thanks to [tduck973564](https://github.com/tduck973564) and [KineticTactic](https://github.com/KineticTactic) for helping with the syntax, errors and features. 
 
 ## Change Log
 Starting from 12/7 because I forgot to do it before
