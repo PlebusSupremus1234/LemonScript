@@ -27,7 +27,7 @@ Links:
 - [More Code Examples](https://plebussupremus1234.github.io/LemonScript/docs/examples/classes/class)
 
 ## Credits
-Huge thanks to [tduck973564](https://github.com/tduck973564) and [KineticTactic](https://github.com/KineticTactic) for helping with the syntax, errors and features. 
+Huge thanks to [tduck973564](https://github.com/tduck973564) and [KineticTactic](https://github.com/KineticTactic) for helping design the language. 
 
 ## Change Log
 Starting from 12/7 because I forgot to do it before
